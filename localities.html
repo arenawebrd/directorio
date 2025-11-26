@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Localidades - Directorio</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  body{font-family:Roboto,Arial,sans-serif;background:#f7f8fb;color:#202124}
+  .wrap{max-width:1100px;margin:18px auto;padding:12px}
+  h1{font-size:20px;margin-bottom:10px}
+  #map{height:420px;border-radius:10px;box-shadow:0 1px 6px rgba(16,24,40,0.06);overflow:hidden}
+  .locals{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:12px}
+  .loc-list{background:#fff;padding:12px;border-radius:10px;border:1px solid #e9eef6;max-height:520px;overflow:auto}
+  .loc-item{padding:8px;border-bottom:1px solid #f1f4f7}
+  .loc-item:last-child{border-bottom:0}
+  .loc-item h3{margin:0;font-size:15px}
+  .biz-list{margin-top:8px;padding-left:14px}
+  .biz-list a{display:block;padding:6px 0;color:var(--g-blue);text-decoration:none}
+  @media(max-width:900px){ .locals{grid-template-columns:1fr} .loc-list{max-height:none} #map{height:300px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Localidades</h1>
+  <p>Mapa interactivo con marcadores para cada negocio y listado de localidades con enlaces a las fichas.</p>
+  <div id="map"></div>
+  <div class="locals">
+    <div class="loc-list" id="locList">
+      <strong>Localidades</strong>
+      <div id="localItems"></div>
+    </div>
+    <div class="loc-sidebar">
+      <div class="card" style="margin-top:0;padding:12px">
+        <h3>Filtrar</h3>
+        <div>
+          <label>Buscar: <input id="q" style="width:100%" placeholder="Nombre, categoría..."></label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="api.js"></script>
+<script>
+(async function(){
+  let data = [];
+  try{ data = await loadData(); }catch(e){ console.error(e); document.getElementById('locList').innerHTML = '<p>Error cargando datos.</p>'; return; }
+  // normalize field keys
+  function getField(obj,name){ const k = Object.keys(obj).find(x=>x.toLowerCase()===name.toLowerCase()); return k? obj[k]: undefined; }
+  function getNumber(obj,names){ for(const n of names){ const v = getField(obj,n); if(v!==undefined && v!==''){ const f = parseFloat(String(v).replace(',','.')); if(!isNaN(f)) return f; } } return null; }
+  // group by locality-like fields: try 'locality','city','town','neighborhood','area'
+  const groupKeys = ['locality','city','town','neighborhood','area','colony','zona','localidad'];
+  const groups = {};
+  data.forEach(b=>{
+    let key = null;
+    for(const g of groupKeys){ const val = getField(b,g); if(val && String(val).trim()!==''){ key = String(val).trim(); break; } }
+    if(!key) key = getField(b,'province') || getField(b,'department') || 'Sin localidad';
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(b);
+  });
+
+  // create map
+  const map = L.map('map', { zoomControl:true }).setView([18.5,-69.0],8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+  const markers = L.layerGroup().addTo(map);
+
+  // add markers for businesses with coordinates
+  const bounds = [];
+  data.forEach(b => {
+    const lat = getNumber(b,['latitude','lat','y']); const lon = getNumber(b,['longitude','lon','lng','x']);
+    if(lat!==null && lon!==null){
+      const m = L.marker([lat,lon]);
+      const name = b.name || 'Negocio';
+      const slug = b.slug || '';
+      const href = slug? ('negocio.html?slug=' + encodeURIComponent(slug)) : '#';
+      m.bindPopup(`<strong>${escapeHtml(name)}</strong><br><a href="${href}">Ver ficha</a>`);
+      m.addTo(markers);
+      bounds.push([lat,lon]);
+    }
+  });
+  if(bounds.length) map.fitBounds(bounds, {padding:[40,40]});
+
+  // render locality list
+  const localItems = document.getElementById('localItems');
+  Object.keys(groups).sort().forEach(loc => {
+    const div = document.createElement('div'); div.className='loc-item';
+    const h = document.createElement('h3'); h.textContent = loc + ' (' + groups[loc].length + ')'; div.appendChild(h);
+    const bl = document.createElement('div'); bl.className='biz-list';
+    groups[loc].slice(0,200).forEach(b => {
+      const a = document.createElement('a'); a.href = b.slug? ('negocio.html?slug=' + encodeURIComponent(b.slug)) : '#'; a.textContent = (b.name || '—') + (b.category? ' · ' + b.category : ''); bl.appendChild(a);
+    });
+    div.appendChild(bl); localItems.appendChild(div);
+  });
+
+  // simple search filter
+  const q = document.getElementById('q'); q.addEventListener('input', ()=>{
+    const v = q.value.trim().toLowerCase(); document.querySelectorAll('.loc-item').forEach(li=>{
+      const text = li.textContent.toLowerCase(); li.style.display = text.indexOf(v)!==-1? 'block':'none';
+    });
+  });
+
+  function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Directorio - Mapa y listado</title>
+<!-- Roboto + Material Icons for a Google-like look -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <a href="/" class="logo" aria-label="Directorio Home">
+      <span class="g g1">G</span><span class="g g2">o</span><span class="g g3">o</span><span class="g g4">g</span><span class="g g5">l</span><span class="g g6">e</span>
+      <span class="title">Directorio</span>
+    </a>
+  </div>
+
+  <div class="controls">
+    <label>
+      <select id="filter-province"><option value="">Provincias</option></select>
+    </label>
+    <label>
+      <select id="filter-municipality"><option value="">Localidades</option></select>
+    </label>
+    <div class="filter-actions">
+      <button id="applyFiltersBtn" class="btn primary">Buscar</button>
+    </div>
+  </div>
+  
+  <!-- mobile filters toggle (visible on small screens) -->
+  <button id="btn-mobile-filters" class="mobile-filter-toggle" aria-expanded="false" aria-label="Abrir filtros">
+    <span class="material-icons">filter_list</span>
+  </button>
+</header>
+
+<!-- Mobile view toggle (visible only on small screens) -->
+<div class="mobile-view-toggle" aria-hidden="true">
+  <button id="btn-show-list" class="view-btn" aria-pressed="true" title="Ver lista">
+    <span class="material-icons">list</span>
+    <span class="v-label">Lista</span>
+  </button>
+  <button id="btn-show-map" class="view-btn" aria-pressed="false" title="Ver mapa">
+    <span class="material-icons">map</span>
+    <span class="v-label">Mapa</span>
+  </button>
+  <!-- mobile inline filter button (after the two buttons) -->
+  <button id="btn-mobile-filters-mobile" class="mobile-filter-toggle-mobile" aria-expanded="false"> 
+    <span class="material-icons">filter_list</span>
+    <span class="v-label">Filtro Busqueda</span>
+  </button>
+</div>
+
+<section class="main">
+  <div id="map" class="map"></div>
+  <div id="list" class="list"></div>
+</section>
+
+<script src="api.js"></script>
+<script src="/hours.js"></script>
+<script>
+// helper to create element
+function el(tag, cls, html) {
+  const d = document.createElement(tag);
+  if(cls) d.className = cls;
+  if(html !== undefined) d.innerHTML = html;
+  return d;
+}
+
+let businesses = [];
+let map;
+let markers = [];
+
+function fitMap() {
+  if(!map) return;
+  const group = L.featureGroup(markers.map(m => m.marker));
+  if(group.getLayers().length) map.fitBounds(group.getBounds().pad(0.2));
+}
+
+function addMarkers(filtered) {
+  // remove old
+  markers.forEach(m => map.removeLayer(m.marker));
+  markers = [];
+
+  filtered.forEach((b, i) => {
+    if(!b.latitude || !b.longitude) return;
+    const lat = parseFloat(b.latitude);
+    const lon = parseFloat(b.longitude);
+    if(Number.isNaN(lat) || Number.isNaN(lon)) return;
+
+    const marker = L.marker([lat, lon]).addTo(map);
+    // prefer slug for SEO-friendly URLs when available
+    const link = b.slug ? `negocio.html?slug=${encodeURIComponent(b.slug)}` : `negocio.html?id=${b._id}`;
+    const popup = `<strong>${escapeHtml(b.name)}</strong><br/>${escapeHtml(b.full_address || '')}<br/><a href="${link}">Ver ficha</a>`;
+    marker.bindPopup(popup);
+    markers.push({marker, id: b._id});
+  });
+  fitMap();
+}
+
+function escapeHtml(s) {
+  if(!s) return '';
+  return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+}
+
+function renderList(filtered) {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  if(filtered.length === 0) {
+    list.appendChild(el('p','empty','No se encontraron negocios.'));
+    return;
+  }
+  filtered.forEach(b => {
+    const card = el('div','card','');
+    // title without underline
+    const titleEl = document.createElement('h3');
+    const a = document.createElement('a');
+    // SEO-friendly: link using slug when present
+    a.href = b.slug ? `negocio.html?slug=${encodeURIComponent(b.slug)}` : `negocio.html?id=${b._id}`;
+    a.textContent = b.name || 'Sin nombre';
+    a.className = 'card-title-link';
+    titleEl.appendChild(a);
+
+    // rating and category + status/hours
+    const ratingKeys = ['rating','ratings','stars','score'];
+    let ratingVal = null;
+    for(const k of ratingKeys){ if(b[k] && !isNaN(parseFloat(b[k]))) { ratingVal = parseFloat(b[k]); break; } }
+
+    const metaRow = document.createElement('div');
+    metaRow.className = 'meta-row';
+
+    const leftMeta = document.createElement('div');
+    leftMeta.className = 'left-meta';
+
+    if(ratingVal !== null){
+      const roundedHalf = Math.round(ratingVal * 2) / 2; // nearest 0.5
+      const full = Math.floor(roundedHalf);
+      const half = (roundedHalf - full) === 0.5;
+
+      const ratingEl = document.createElement('div');
+      ratingEl.className = 'rating';
+      const starsWrap = document.createElement('span');
+      starsWrap.className = 'stars';
+
+      // helper to create SVG star (supports full, half and empty using clipPath for half)
+      function starSVG(type){
+        const ns = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(ns,'svg');
+        svg.setAttribute('viewBox','0 0 24 24');
+        svg.setAttribute('class','star-svg ' + type);
+
+        const pathD = 'M12 .587l3.668 7.431L23.6 9.75l-5.8 5.657L19.335 24 12 19.897 4.665 24l1.535-8.593L0.4 9.75l7.932-1.732z';
+
+        if(type === 'half'){
+          // create unique clipPath id to avoid collisions
+          const uid = 'cp' + Math.floor(Math.random() * 1e9);
+          const defs = document.createElementNS(ns,'defs');
+          const clip = document.createElementNS(ns,'clipPath');
+          clip.setAttribute('id', uid);
+          const rect = document.createElementNS(ns,'rect');
+          // clip left half of the star (half of viewBox width 24 -> 12)
+          rect.setAttribute('x','0'); rect.setAttribute('y','0'); rect.setAttribute('width','12'); rect.setAttribute('height','24');
+          clip.appendChild(rect);
+          defs.appendChild(clip);
+          svg.appendChild(defs);
+
+          const path = document.createElementNS(ns,'path');
+          path.setAttribute('d', pathD);
+          path.setAttribute('clip-path','url(#'+uid+')');
+          svg.appendChild(path);
+
+          // add an empty star stroke behind to show the outline of the other half
+          const outline = document.createElementNS(ns,'path');
+          outline.setAttribute('d', pathD);
+          outline.setAttribute('class','star-outline');
+          svg.appendChild(outline);
+          return svg;
+        }
+
+        const path = document.createElementNS(ns,'path');
+        path.setAttribute('d', pathD);
+        svg.appendChild(path);
+        return svg;
+      }
+
+      for(let i=1;i<=5;i++){
+        if(i <= full){
+          starsWrap.appendChild(starSVG('full'));
+        } else if(i === full + 1 && half){
+          starsWrap.appendChild(starSVG('half'));
+        } else {
+          starsWrap.appendChild(starSVG('empty'));
+        }
+      }
+
+      const num = el('span','rating-num',`${ratingVal.toFixed(1)}`);
+      ratingEl.appendChild(starsWrap);
+      ratingEl.appendChild(num);
+      leftMeta.appendChild(ratingEl);
+    } else {
+      // no rating badge / CTA
+      const badge = el('span','no-rating','Sin calificación');
+      const cta = el('a','add-review','Añadir reseña');
+      cta.href = '#';
+      // store slug (fallback to id) so modal can open by slug for SEO-friendly behavior
+      cta.dataset.slug = b.slug || b._id;
+      leftMeta.appendChild(badge);
+      leftMeta.appendChild(document.createTextNode(' '));
+      leftMeta.appendChild(cta);
+    }
+
+    // category below rating
+    const catLine = document.createElement('div');
+    catLine.className = 'category-line';
+    catLine.innerHTML = `<span class="category">${escapeHtml(b.category || '')}</span>`;
+    leftMeta.appendChild(catLine);
+
+    // right meta: status and today's hours
+    const rightMeta = document.createElement('div');
+    rightMeta.className = 'right-meta';
+    const statusEl = document.createElement('div');
+    statusEl.className = 'status';
+
+    // determine open/closed from working_hours/opening_hours if possible
+    function isOpenNow(raw){
+      if(!raw) return null;
+      let obj = null;
+      try{ obj = JSON.parse(raw); }catch(e){ obj = raw; }
+
+      const now = new Date();
+      const today = now.getDay(); // 0=Sunday
+      const nowMinutes = now.getHours()*60 + now.getMinutes();
+
+      // Google-like 'periods' format
+      if(obj && obj.periods && Array.isArray(obj.periods)){
+        for(const p of obj.periods){
+          if(p.open){
+            const openDay = Number(p.open.day);
+            const openTime = (''+p.open.time).padStart(4,'0');
+            const openMin = Number(openTime.slice(0,2))*60 + Number(openTime.slice(2));
+            if(p.close){
+              const closeDay = Number(p.close.day);
+              const closeTime = (''+p.close.time).padStart(4,'0');
+              const closeMin = Number(closeTime.slice(0,2))*60 + Number(closeTime.slice(2));
+              // same-day
+              if(openDay === today && closeDay === today){ if(nowMinutes >= openMin && nowMinutes < closeMin) return true; }
+              // overnight: closeDay != openDay
+              if(openDay === today && closeDay !== today){ if(nowMinutes >= openMin) return true; }
+              if(closeDay === today && openDay !== today){ if(nowMinutes < closeMin) return true; }
+            } else {
+              // no close time -> assume open if today and after open
+              if(openDay === today && nowMinutes >= openMin) return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      // weekday_text array (fallback): look for 'Closed' or opening ranges
+      if(obj && obj.weekday_text && Array.isArray(obj.weekday_text)){
+        const txt = obj.weekday_text[today] || obj.weekday_text[0] || '';
+        if(!txt) return null;
+        if(/closed/i.test(txt)) return false;
+        if(/open/i.test(txt) || /-/i.test(txt)) return true;
+        return null;
+      }
+
+      // raw string fallback
+      if(typeof obj === 'string'){
+        if(/closed/i.test(obj)) return false;
+        if(/open/i.test(obj) || /-/i.test(obj)) return true;
+      }
+
+      return null;
+    }
+
+    const openState = isOpenNow(b.working_hours || b.opening_hours || b.working_hours || b.opening_hours);
+    if(openState === true){ statusEl.textContent = 'Abierto'; statusEl.classList.add('open'); }
+    else if(openState === false){ statusEl.textContent = 'Cerrado'; statusEl.classList.add('closed'); }
+
+    rightMeta.appendChild(statusEl);
+
+    metaRow.appendChild(leftMeta);
+    metaRow.appendChild(rightMeta);
+
+    const addr = el('div','meta',`<span class="material-icons icon">place</span> <span class="meta-text">${escapeHtml(b.full_address || '')}</span>`);
+    const phone = el('div','meta',`<span class="material-icons icon">phone</span> <span class="meta-text">${escapeHtml(b.phone || '')}</span>`);
+
+    card.appendChild(titleEl);
+    card.appendChild(metaRow);
+    card.appendChild(addr);
+    card.appendChild(phone);
+    list.appendChild(card);
+  });
+}
+
+function populateFilters(data) {
+  const provSel = document.getElementById('filter-province');
+  const munSel = document.getElementById('filter-municipality');
+  const provinces = Array.from(new Set(data.map(d => d.province || '').filter(Boolean))).sort();
+  const municipalities = Array.from(new Set(data.map(d => d.municipality || '').filter(Boolean))).sort();
+
+  provinces.forEach(p => {
+    const o = document.createElement('option'); o.value = p; o.textContent = p; provSel.appendChild(o);
+  });
+  municipalities.forEach(p => {
+    const o = document.createElement('option'); o.value = p; o.textContent = p; munSel.appendChild(o);
+  });
+}
+
+function applyFilters() {
+  const prov = document.getElementById('filter-province').value;
+  const mun = document.getElementById('filter-municipality').value;
+  // only filter by province and municipality (no free-text search)
+  const q = '';
+
+  let filtered = businesses.filter(b => {
+    if(prov && (b.province || '').toLowerCase() !== prov.toLowerCase()) return false;
+    if(mun && (b.municipality || '').toLowerCase() !== mun.toLowerCase()) return false;
+    if(q) {
+      const hay = ((b.name||'') + ' ' + (b.category||'') + ' ' + (b.full_address||'')).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  renderList(filtered);
+  addMarkers(filtered);
+  // If currently in map view, ensure map layout updates
+  if(document.body.classList.contains('show-map')){
+    adjustMapHeight();
+    if(typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') setTimeout(()=> map.invalidateSize(), 250);
+  }
+}
+
+document.getElementById('applyFiltersBtn').addEventListener('click', ()=>{
+  applyFilters();
+  // close mobile filters popup and ensure map reflects changes immediately
+  if(window.innerWidth <= 720){
+    document.body.classList.remove('filters-open');
+    const headerBtn = document.getElementById('btn-mobile-filters');
+    const mobileBtn = document.getElementById('btn-mobile-filters-mobile');
+    if(headerBtn) headerBtn.setAttribute('aria-expanded','false');
+    if(mobileBtn) mobileBtn.setAttribute('aria-expanded','false');
+    const mapEl = document.getElementById('map');
+    if(mapEl) mapEl.style.marginTop = '20px';
+    if(typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') setTimeout(()=> map.invalidateSize(), 260);
+  }
+});
+
+async function init() {
+  businesses = await loadData();
+  // assign ids
+  businesses = businesses.map((b,i)=> ({...b, _id:i}));
+
+  populateFilters(businesses);
+
+  // init map centered roughly
+  map = L.map('map').setView([40.4168, -3.7038], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  applyFilters();
+}
+
+init();
+</script>
+
+<!-- Modal for business ficha -->
+<div id="biz-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close="true"></div>
+  <div class="modal-panel" role="dialog" aria-modal="true">
+    <button class="modal-close" aria-label="Cerrar">✕</button>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// Render a small ficha inside the modal using the existing businesses data
+function renderBusinessModal(idOrSlug){
+  // find by slug or numeric id
+  const idx = businesses.findIndex(bb => String(bb._id) === String(idOrSlug) || bb.slug === idOrSlug);
+  if(idx === -1) return;
+  const b = businesses[idx];
+  const mb = document.getElementById('modal-body');
+  mb.innerHTML = '';
+
+  const title = document.createElement('h2'); title.textContent = b.name || 'Sin nombre';
+
+  // rating display (reuse same half-star logic)
+  const ratingVal = (function(){
+    const keys = ['rating','ratings','stars','score'];
+    for(const k of keys) if(b[k] && !isNaN(parseFloat(b[k]))) return parseFloat(b[k]);
+    return null;
+  })();
+
+  const ratingWrap = document.createElement('div'); ratingWrap.className = 'modal-rating';
+  if(ratingVal !== null){
+    const roundedHalf = Math.round(ratingVal * 2) / 2;
+    const full = Math.floor(roundedHalf);
+    const half = (roundedHalf - full) === 0.5;
+
+    function starSVG(type){
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns,'svg');
+      svg.setAttribute('viewBox','0 0 24 24');
+      svg.setAttribute('class','star-svg ' + type);
+      const pathD = 'M12 .587l3.668 7.431L23.6 9.75l-5.8 5.657L19.335 24 12 19.897 4.665 24l1.535-8.593L0.4 9.75l7.932-1.732z';
+      if(type === 'half'){
+        const uid = 'mcp' + Math.floor(Math.random() * 1e9);
+        const defs = document.createElementNS(ns,'defs');
+        const clip = document.createElementNS(ns,'clipPath'); clip.setAttribute('id', uid);
+        const rect = document.createElementNS(ns,'rect'); rect.setAttribute('x','0'); rect.setAttribute('y','0'); rect.setAttribute('width','12'); rect.setAttribute('height','24'); clip.appendChild(rect); defs.appendChild(clip); svg.appendChild(defs);
+        const path = document.createElementNS(ns,'path'); path.setAttribute('d', pathD); path.setAttribute('clip-path','url(#'+uid+')'); svg.appendChild(path);
+        const outline = document.createElementNS(ns,'path'); outline.setAttribute('d', pathD); outline.setAttribute('class','star-outline'); svg.appendChild(outline);
+        return svg;
+      }
+      const path = document.createElementNS(ns,'path'); path.setAttribute('d', pathD); svg.appendChild(path); return svg;
+    }
+
+    const stars = document.createElement('span'); stars.className = 'stars';
+    for(let i=1;i<=5;i++){
+      if(i <= full) stars.appendChild(starSVG('full'));
+      else if(i === full+1 && half) stars.appendChild(starSVG('half'));
+      else stars.appendChild(starSVG('empty'));
+    }
+    const num = document.createElement('span'); num.className = 'rating-num'; num.textContent = ratingVal.toFixed(1);
+    ratingWrap.appendChild(stars); ratingWrap.appendChild(num);
+  }
+
+  // category below rating
+  const cat = document.createElement('div'); cat.className = 'meta'; cat.textContent = b.category || '';
+
+  // compute open/closed for modal from working_hours/opening_hours
+  function isOpenNowModal(raw){
+    if(!raw) return null;
+    let obj = null;
+    try{ obj = JSON.parse(raw); }catch(e){ obj = raw; }
+    const now = new Date();
+    const today = now.getDay();
+    const nowMinutes = now.getHours()*60 + now.getMinutes();
+    if(obj && obj.periods && Array.isArray(obj.periods)){
+      for(const p of obj.periods){
+        if(p.open){
+          const openDay = Number(p.open.day);
+          const openTime = (''+p.open.time).padStart(4,'0');
+          const openMin = Number(openTime.slice(0,2))*60 + Number(openTime.slice(2));
+          if(p.close){
+            const closeDay = Number(p.close.day);
+            const closeTime = (''+p.close.time).padStart(4,'0');
+            const closeMin = Number(closeTime.slice(0,2))*60 + Number(closeTime.slice(2));
+            if(openDay === today && closeDay === today){ if(nowMinutes >= openMin && nowMinutes < closeMin) return true; }
+            if(openDay === today && closeDay !== today){ if(nowMinutes >= openMin) return true; }
+            if(closeDay === today && openDay !== today){ if(nowMinutes < closeMin) return true; }
+          } else { if(openDay === today && nowMinutes >= openMin) return true; }
+        }
+      }
+      return false;
+    }
+    if(obj && obj.weekday_text && Array.isArray(obj.weekday_text)){
+      const txt = obj.weekday_text[today] || obj.weekday_text[0] || '';
+      if(/closed/i.test(txt)) return false;
+      if(/open/i.test(txt) || /-/i.test(txt)) return true;
+      return null;
+    }
+    if(typeof obj === 'string'){
+      if(/closed/i.test(obj)) return false;
+      if(/open/i.test(obj) || /-/i.test(obj)) return true;
+    }
+    return null;
+  }
+
+  const modalOpen = isOpenNowModal(b.working_hours || b.opening_hours);
+  const status = document.createElement('div'); status.className = 'status';
+  if(modalOpen === true){ status.textContent = 'Abierto'; status.classList.add('open'); }
+  else if(modalOpen === false){ status.textContent = 'Cerrado'; status.classList.add('closed'); }
+  const hours = document.createElement('pre'); hours.className = 'working-hours';
+  // render formatted Google-Maps-like hours block when possible
+  try{
+    const raw = b.working_hours || '';
+    const hoursEl = typeof createHoursElementFromRaw === 'function' ? createHoursElementFromRaw(raw) : null;
+    if(hoursEl){ mb.appendChild(hoursEl); }
+    else { const wh = JSON.parse(raw||''); hours.textContent = JSON.stringify(wh, null, 2); mb.appendChild(hours); }
+  } catch(e){ hours.textContent = b.working_hours || ''; mb.appendChild(hours); }
+
+  const addr = document.createElement('div'); addr.className='meta'; addr.innerHTML = `<span class="material-icons icon">place</span> ${escapeHtml(b.full_address||'')}`;
+  const phone = document.createElement('div'); phone.className='meta'; phone.innerHTML = `<span class="material-icons icon">phone</span> ${escapeHtml(b.phone||'')}`;
+
+  const reviewSection = document.createElement('div'); reviewSection.className='review-section';
+  reviewSection.innerHTML = '<h3>Añadir reseña</h3><p>Puedes dejar tu reseña aquí (demo).</p>';
+
+  mb.appendChild(title);
+  if(ratingVal !== null) mb.appendChild(ratingWrap);
+  mb.appendChild(cat);
+  mb.appendChild(status);
+  mb.appendChild(hours);
+  mb.appendChild(addr);
+  mb.appendChild(phone);
+  mb.appendChild(reviewSection);
+
+  const modal = document.getElementById('biz-modal'); modal.setAttribute('aria-hidden','false'); modal.classList.add('open');
+}
+
+function closeModal(){ const modal = document.getElementById('biz-modal'); modal.setAttribute('aria-hidden','true'); modal.classList.remove('open'); }
+
+document.addEventListener('click', function(e){
+  const t = e.target.closest('.add-review');
+  if(t){ e.preventDefault(); const identifier = t.dataset.slug || t.dataset.id; renderBusinessModal(identifier); return; }
+  if(e.target.dataset && e.target.dataset.close === 'true') closeModal();
+  if(e.target.classList && e.target.classList.contains('modal-close')) closeModal();
+});
+
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
+
+// Mobile view toggles: show map or list
+function showMapView(){
+  document.body.classList.add('show-map');
+  document.body.classList.remove('show-list');
+  document.getElementById('btn-show-map').setAttribute('aria-pressed','true');
+  document.getElementById('btn-show-list').setAttribute('aria-pressed','false');
+  adjustMapHeight();
+}
+function showListView(){
+  document.body.classList.add('show-list');
+  document.body.classList.remove('show-map');
+  document.getElementById('btn-show-map').setAttribute('aria-pressed','false');
+  document.getElementById('btn-show-list').setAttribute('aria-pressed','true');
+  // reset inline height so list view can manage map size
+  const m = document.getElementById('map'); if(m) m.style.height = '';
+}
+
+document.getElementById('btn-show-map').addEventListener('click', function(){ showMapView(); });
+document.getElementById('btn-show-list').addEventListener('click', function(){ showListView(); });
+
+// On load, if narrow screen, default to list view
+function adaptInitialView(){
+  if(window.innerWidth <= 720){
+    // default: show list
+    showListView();
+    document.querySelector('.mobile-view-toggle').setAttribute('aria-hidden','false');
+  } else {
+    document.body.classList.remove('show-list');
+    document.body.classList.remove('show-map');
+    document.querySelector('.mobile-view-toggle').setAttribute('aria-hidden','true');
+  }
+}
+window.addEventListener('resize', adaptInitialView);
+adaptInitialView();
+
+// adjust map height on mobile to fill available viewport when showing map
+function adjustMapHeight(){
+  const m = document.getElementById('map');
+  if(!m) return;
+  if(window.innerWidth > 720) { m.style.height = ''; if(typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') map.invalidateSize(); return; }
+  if(!document.body.classList.contains('show-map')) return;
+  // compute available height: viewport minus header and mobile toggles
+  const header = document.querySelector('header');
+  const mobileToolbar = document.querySelector('.mobile-view-toggle');
+  const headerH = header ? header.getBoundingClientRect().height : 56;
+  const toolbarH = mobileToolbar && getComputedStyle(mobileToolbar).display !== 'none' ? mobileToolbar.getBoundingClientRect().height : 0;
+  const pad = 20; // small padding
+  const avail = Math.max(200, window.innerHeight - headerH - toolbarH - pad);
+  m.style.height = avail + 'px';
+  if(typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') setTimeout(()=> map.invalidateSize(), 300);
+}
+
+window.addEventListener('resize', function(){ adjustMapHeight(); });
+
+// Mobile filters toggle (support header button and mobile inline button)
+function bindMobileFilterButtons(){
+  const headerBtn = document.getElementById('btn-mobile-filters');
+  const mobileBtn = document.getElementById('btn-mobile-filters-mobile');
+  function toggleOpen(){
+    const open = document.body.classList.toggle('filters-open');
+    if(headerBtn) headerBtn.setAttribute('aria-expanded', String(open));
+    if(mobileBtn) mobileBtn.setAttribute('aria-expanded', String(open));
+    // adjust map position so the filters popup doesn't cover it
+    const controls = document.querySelector('header .controls');
+    const mapEl = document.getElementById('map');
+    if(mapEl && controls){
+      if(open){
+        // set a modest fixed margin so the popup doesn't cover the map
+        mapEl.style.marginTop = '20px';
+        if(typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') setTimeout(()=> map.invalidateSize(), 240);
+      } else {
+        mapEl.style.marginTop = '';
+        if(typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') setTimeout(()=> map.invalidateSize(), 240);
+      }
+    }
+  }
+  if(headerBtn) headerBtn.addEventListener('click', toggleOpen);
+  if(mobileBtn) mobileBtn.addEventListener('click', toggleOpen);
+
+  // click outside to close
+  document.addEventListener('click', function(e){
+    if(!document.body.classList.contains('filters-open')) return;
+    const controls = document.querySelector('header .controls');
+    const isInside = controls && (controls.contains(e.target) || (headerBtn && headerBtn.contains(e.target)) || (mobileBtn && mobileBtn.contains(e.target)));
+    if(!isInside){
+      document.body.classList.remove('filters-open');
+      if(headerBtn) headerBtn.setAttribute('aria-expanded','false');
+      if(mobileBtn) mobileBtn.setAttribute('aria-expanded','false');
+    }
+  });
+
+  // close on ESC
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ document.body.classList.remove('filters-open'); if(headerBtn) headerBtn.setAttribute('aria-expanded','false'); if(mobileBtn) mobileBtn.setAttribute('aria-expanded','false'); } });
+
+  // close panel when applying filters
+  const applyBtn = document.getElementById('applyFiltersBtn');
+  if(applyBtn) applyBtn.addEventListener('click', ()=>{ if(window.innerWidth <= 720){ document.body.classList.remove('filters-open'); if(headerBtn) headerBtn.setAttribute('aria-expanded','false'); if(mobileBtn) mobileBtn.setAttribute('aria-expanded','false'); } });
+}
+bindMobileFilterButtons();
+
+</script>
+
+</body>
+</html>

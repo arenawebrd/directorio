@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Ficha de Negocio</title>
+<!-- Roboto + Material Icons to match index styling -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<!-- Font Awesome for social icons fallback -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+<!-- Do not set placeholder images early; hide image elements until populated -->
+<script>
+  (function(){
+    try{
+      const logo = document.getElementById('logo'); if(logo) logo.style.display = 'none';
+      const feat = document.getElementById('featured_image'); if(feat) feat.style.display = 'none';
+    }catch(e){}
+  })();
+</script>
+<header class="site-header">
+  <div class="brand">
+    <a href="index.html" class="logo" aria-label="Directorio Home">
+      <span class="g g1">G</span><span class="g g2">o</span><span class="g g3">o</span><span class="g g4">g</span><span class="g g5">l</span><span class="g g6">e</span>
+      <span class="title">Directorio</span>
+    </a>
+  </div>
+  <!-- Back button in navbar for desktop (visible only on desktop) -->
+  <div class="header-back back" style="margin-left:12px;">
+    <a href="index.html" id="backLinkNav" aria-label="Volver al listado">
+      <span class="back-icon material-icons" aria-hidden="true">arrow_back</span>
+      <span class="back-text">Volver al listado</span>
+    </a>
+  </div>
+</header>
+<main id="content" class="detail-container">
+  <header class="detail-header">
+    <!-- removed inline back here to avoid duplicate; use navbar back only -->
+    <div class="detail-left">
+      <img id="logo" alt="Logo" class="detail-logo" loading="eager" />
+      <div class="detail-title">
+          <h1 id="name"></h1>
+          <div class="detail-sub">
+            <div id="ratingWrap" class="rating-wrap"></div>
+            <div id="category" class="meta muted"></div>
+            <div id="openState" class="badge"></div>
+          </div>
+          <div id="address" class="meta"><span class="material-icons" style="vertical-align:middle;margin-right:6px;font-size:18px">place</span><span id="address_text"></span></div>
+        </div>
+    </div>
+    <div class="detail-actions" aria-hidden="false">
+      <a id="callBtn" class="action-btn" href="#" title="Llamar"><span class="material-icons">call</span></a>
+      <a id="siteBtn" class="action-btn" href="#" title="Sitio"><span class="material-icons">public</span></a>
+      <a id="waBtn" class="action-btn" href="#" title="Dirección"><span class="material-icons">place</span></a>
+      <a id="reviewBtnMobile" class="action-btn mobile-only review-mobile" href="#" title="Escribir reseña" style="display:none"><span class="material-icons">star_rate</span><span class="rev-label" style="display:none">Escribir reseña</span></a>
+    </div>
+  </header>
+
+  <div class="detail-grid">
+    <div class="main-col">
+      <div class="image-plain">
+        <img id="featured_image" alt="Imagen" class="featured" loading="eager" style="display:block" />
+      </div>
+
+      <article class="card">
+        <h2>Sobre este Negocio</h2>
+        <div id="description"></div>
+      </article>
+
+      <article class="card contact-card" aria-label="Contacto">
+        <h2>Información de contacto</h2>
+        <div class="contact-list">
+          <div class="contact-item" id="contact_address"><span class="material-icons">place</span><span class="contact-text"></span></div>
+          <a class="contact-item" id="contact_phone" href="#" style="display:none"><span class="material-icons">call</span><span class="contact-text"></span></a>
+          <a class="contact-item" id="contact_site" href="#" target="_blank" rel="noopener" style="display:none"><span class="material-icons">public</span><span class="contact-text"></span></a>
+          <a class="contact-item" id="contact_email" href="#" style="display:none"><span class="material-icons">email</span><span class="contact-text"></span></a>
+        </div>
+      </article>
+      <div class="map-plain">
+        <div id="map_main" class="mini-map" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Mobile-only schedule & socials (populated by JS on mobile) -->
+      <article class="card mobile-only mobile-schedule" style="display:none;margin-top:12px">
+        <h3><span class="material-icons" style="vertical-align:middle;margin-right:8px">schedule</span>Horario</h3>
+        <div id="todayStatusMobile" class="meta"><span id="todayBadgeMobile" class="badge" style="display:inline-block;margin-left:8px"></span></div>
+        <ul id="scheduleListMobile" class="schedule-list" style="margin-top:8px"></ul>
+      </article>
+
+      <div class="card socials-card mobile-only" style="display:none;margin-top:12px">
+        <h3>Redes</h3>
+        <ul id="socials_mobile" class="social-icons"></ul>
+      </div>
+
+      <article id="about_json_card" class="card">
+        <h2>Información adicional</h2>
+        <ul id="about_json_list" class="detail-list" style="margin-top:8px"></ul>
+      </article>
+    </div>
+
+    <aside class="side-col">
+      <div id="map" class="mini-map"></div>
+
+      <article class="card desktop-only">
+        <h3><span class="material-icons" style="vertical-align:middle;margin-right:8px">schedule</span>Horario</h3>
+        <div id="todayStatus" class="meta"><span id="todayBadge" class="badge" style="display:inline-block;margin-left:8px"></span></div>
+        <ul id="scheduleList" class="schedule-list" style="margin-top:8px"></ul>
+      </article>
+
+      <div class="review-wrap desktop-only" style="margin:12px 0">
+        <a id="reviewBtn" class="btn small" href="#" target="_blank" rel="noopener" style="display:none"><span class="material-icons" style="vertical-align:middle;margin-right:8px">star_rate</span>Escribir reseña</a>
+      </div>
+
+      <div class="card socials-card desktop-only"><h3>Redes</h3><ul id="socials" class="social-icons"></ul></div>
+    </aside>
+  </div>
+</main>
+
+<style>
+/* Minimal business page tweaks */
+body{font-family:Roboto,Arial,sans-serif;color:#202124;background:#f7f8fb}
+  :root{--site-header-height:64px}
+  .detail-container{max-width:980px;margin:14px auto;padding:0 12px}
+.back{margin-bottom:8px}
+/* back link styling */
+.back a{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:#fff;border:1px solid rgba(0,0,0,0.06);box-shadow:0 1px 2px rgba(16,24,40,0.04);color:var(--g-blue);text-decoration:none;font-weight:600}
+.back a:hover{box-shadow:0 2px 6px rgba(16,24,40,0.08);transform:translateY(-1px)}
+.detail-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  @media (max-width:720px){
+    .detail-header{flex-direction:column;align-items:flex-start;gap:8px}
+    .detail-actions{margin-left:0;justify-content:flex-start;width:100%}
+    .detail-actions a{margin-right:8px}
+  }
+
+  /* header back placement adjustments */
+  .header-back{margin-left:auto}
+
+  /* site header: will become fixed when user scrolls (JS toggles .scrolled) */
+  .site-header{position:relative;z-index:1200;background:#fff;border-bottom:1px solid rgba(0,0,0,0.06);height:var(--site-header-height);display:flex;align-items:center;gap:12px;padding:8px 12px}
+  .site-header.scrolled{position:fixed;top:0;left:0;right:0;box-shadow:0 2px 6px rgba(16,24,40,0.04)}
+  .site-header .brand{display:flex;align-items:center;gap:10px}
+    /* place desktop back next to brand */
+    .site-header .header-back.desktop-only{margin-left:12px}
+.detail-left{display:flex;gap:12px;align-items:center}
+.detail-logo{width:72px;height:72px;object-fit:cover;border-radius:8px}
+.detail-title h1{margin:0;font-size:20px}
+.detail-sub{display:flex;gap:10px;align-items:center;margin-top:6px}
+.badge{padding:6px 8px;border-radius:8px;font-weight:600}
+.badge.open{background:#e6f4ea;color:#137333}
+.badge.closed{background:#fce8e6;color:#a52714}
+  .detail-grid{display:flex;gap:16px;margin-top:12px;align-items:flex-start}
+.main-col{flex:1;min-width:0}
+.side-col{width:320px;flex:0 0 320px}
+.featured{width:100%;border-radius:8px;max-height:350px;object-fit:cover}
+.json-pre{background:#f6f8fa;padding:10px;border-radius:8px;overflow:auto;max-height:360px}
+.schedule-list{list-style:none;padding:0;margin:8px 0;border-radius:6px;overflow:hidden;background:#fff;border:1px solid #f0f0f0}
+.schedule-list li{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #f6f6f6;font-size:14px}
+.schedule-list li:last-child{border-bottom:0}
+.schedule-list li .day{font-weight:500;color:#202124;width:110px}
+.schedule-list li .times{color:#5f6368;text-align:right}
+.schedule-list li.closed .times{color:#9aa0a6}
+.schedule-list li.today{background:linear-gradient(90deg, rgba(26,115,232,0.04), rgba(26,115,232,0.02))}
+.schedule-list li.today .day{color:var(--g-blue);font-weight:700}
+.schedule-list li.today .times{color:#137333;font-weight:600}
+.social-icons{list-style:none;padding:0;margin:8px 0;display:flex;flex-direction:row;gap:8px}
+.social-icons li{list-style:none}
+.social-icons a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;text-decoration:none;color:#202124;background:#fff;border:1px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.social-icons a .s-ico{font-size:16px}
+.social-icons .s-label{display:none}
+  .detail-list{list-style:none;padding:0;margin:8px 0;background:#fff;border:1px solid #e6e6e6;border-radius:8px;overflow:hidden}
+  .detail-list li{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid #f1f1f1}
+  .detail-list li:last-child{border-bottom:0}
+  /* allow label to occupy full line and avoid forced wrapping caused by a fixed width */
+  .detail-list li .label{font-weight:600;color:#202124;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail-list li a{color:var(--g-blue);text-decoration:none}
+/* contact card styles */
+.contact-card{margin-top:12px}
+.contact-list{display:flex;flex-direction:column;gap:8px}
+.contact-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f4f4f4}
+.contact-item:last-child{border-bottom:0}
+.contact-item .material-icons{font-size:20px;color:var(--g-blue);min-width:24px}
+.contact-item .contact-text{color:#202124;margin-left:6px;word-break:break-word}
+.contact-item a{display:flex;align-items:center;gap:8px;color:var(--g-blue);text-decoration:none}
+.contact-item a:hover{text-decoration:none}
+.contact-item, .contact-item a, .contact-item .contact-text { text-decoration: none !important; }
+.contact-item a:hover .contact-text { text-decoration: none !important; }
+/* also ensure links in fields table are not underlined */
+#fields_table a { text-decoration: none !important; color: var(--g-blue); }
+.rating-wrap{display:flex;align-items:center;gap:6px}
+.btn.small{padding:6px 8px;font-size:13px}
+.detail-actions .btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;margin-left:6px}
+  .mini-map{height:350px;margin-top:0;border-radius:8px;overflow:hidden}
+@media (max-width:720px){.detail-grid{flex-direction:column}.side-col{width:100%}}
+
+/* Ensure mobile back button sits at the left of the header and hides text */
+@media (max-width:720px){
+  .detail-header .header-back.mobile-only{order:-1;align-self:flex-start;margin-left:0;padding:0}
+  /* show full text on mobile when there's space */
+  .detail-header .header-back.mobile-only .back-text{display:inline-block}
+  .detail-header .header-back.mobile-only a{padding:6px;border-radius:8px}
+}
+
+/* Rating star colors: full stars yellow, empty gray, half uses SVG clipping already but ensure visible */
+.rating-wrap .star-svg path{fill:#dcdcdc}
+.rating-wrap .star-svg.full path{fill:#fbbc04}
+.rating-wrap .star-svg.empty path{fill:#dcdcdc}
+.rating-wrap .star-svg.half path{fill:#fbbc04}
+.rating-wrap{display:inline-flex;align-items:center;gap:6px}
+.rating-num{color:#5f6368;font-size:14px}
+
+/* Improve focus styles for back links */
+.header-back a:focus{outline:2px solid rgba(26,115,232,0.18);outline-offset:2px}
+
+/* Mobile visibility helpers: show mobile-only blocks and hide desktop-only ones */
+@media (max-width:720px){
+  .mobile-only{display:block !important}
+  .desktop-only{display:none !important}
+}
+
+/* Mobile adjustments: stack rating/category and show review label */
+@media (max-width:720px){
+  .detail-sub{flex-direction:column;align-items:flex-start;gap:6px}
+  .detail-sub #ratingWrap{order:1}
+  .detail-sub #category{order:2}
+  .detail-sub #openState{order:3}
+  /* Show review button text on mobile and make the button inline with text */
+  .detail-actions .review-mobile{min-width:0;padding:6px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:8px}
+  .detail-actions .review-mobile .rev-label{display:inline-block;font-weight:600}
+}
+
+/* Desktop: remove underline from the sidebar review button */
+@media (min-width:721px){
+  .review-wrap a#reviewBtn,
+  .review-wrap a#reviewBtn:hover,
+  .review-wrap a#reviewBtn:focus{
+    text-decoration: none !important;
+    color: inherit;
+  }
+}
+
+/* action buttons in header */
+.action-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:#fff;color:var(--g-blue);margin-left:8px;text-decoration:none}
+.action-btn.wa{background:linear-gradient(90deg,#25D366,#128C7E);color:#fff}
+.action-btn .material-icons{font-size:20px}
+
+/* social icon styling */
+.social-icons li a .s-ico svg{width:18px;height:18px}
+  /* fields table tweaks */
+  #fields_table table{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:6px}
+  #fields_table td{padding:8px;vertical-align:top}
+  #fields_table td.field-key{width:140px;font-weight:600;color:#111}
+  #fields_table td.field-val{white-space:normal;word-break:break-word;color:#333}
+
+  /* make iframe/map and featured image responsive heights */
+  .mini-map iframe{width:100%;height:100%;border:0;display:block}
+  @media (max-width:720px){ .featured{max-height:220px} .mini-map{height:220px} }
+  @media (min-width:721px){ .mini-map{height:350px} .featured{max-height:350px} }
+
+  /* about_json card styling to resemble Google Maps info rows */
+  /* unify card appearance */
+  .card{background:#fff;border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(16,24,40,0.06);margin-top:18px;margin-bottom:12px}
+  /* Ensure cards are visually separated when stacked */
+  .card + .card{margin-top:20px}
+
+  /* Uniform section titles inside cards */
+  .card h2, .card h3{font-size:16px;margin:0 0 10px 0;font-weight:600;color:#202124}
+  /* smaller title line-height to keep compact */
+  .card h2{line-height:1.2}
+  /* left icons for section titles */
+  .section-ico{vertical-align:middle;margin-right:8px;font-size:18px;color:var(--g-blue)}
+
+  /* header action buttons container positioning */
+  .detail-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+  .detail-actions .action-btn{box-shadow:0 1px 3px rgba(16,24,40,0.06)}
+  .about-chip{display:inline-block;background:#e8f0fe;color:#1a73e8;padding:4px 8px;border-radius:14px;margin-right:6px;font-size:13px}
+  .about-chip .check{margin-right:6px}
+  @media (max-width:720px){ #map_main{display:block;height:220px} #map{display:none} }
+
+  /* Specific tweaks requested: about_json icons blue, remove outer borders leaving only separators */
+  #about_json_list{background:transparent;border:0;padding:0;margin-top:8px}
+  #about_json_list li{border-bottom:1px solid #f1f1f1;padding:14px 12px;display:block}
+  #about_json_list li:last-child{border-bottom:0}
+  /* top row: icon + title */
+  .about-row-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  /* label should stay readable: wrap at word boundaries, avoid breaking inside words */
+  #about_json_list .label{font-weight:700;color:#202124;display:block;margin:0;white-space:normal;word-break:normal;overflow-wrap:normal;max-width:100%}
+  /* values rendered under the title in a responsive two-column grid */
+  #about_json_list .about-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px}
+  .about-item{display:flex;align-items:center;gap:8px;color:#202124}
+  .about-item .material-icons{color:#1a73e8;font-size:18px}
+  /* icon shown at left of each info row */
+  .about-row-icon{color:var(--g-blue);font-size:20px;min-width:28px;display:flex;align-items:center;justify-content:center}
+  /* responsive: collapse about-values to one column on small screens */
+  @media (max-width:720px){
+    #about_json_list .about-values{grid-template-columns:1fr}
+    #about_json_list .about-row-top{gap:8px}
+  }
+
+  /* For horario: remove outer border of the list (keep separators between items) */
+  .schedule-list{background:#fff;border:0;border-radius:6px;overflow:hidden}
+  .schedule-list li{border-bottom:1px solid #f6f6f6}
+  .schedule-list li:last-child{border-bottom:0}
+
+  /* Social icons: ensure SVGs display properly */
+  .social-icons a{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;text-decoration:none;color:inherit;background:#fff;border:1px solid #eee}
+  .social-icons a .s-ico{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px}
+  .social-icons a .s-ico svg{width:18px;height:18px;display:block}
+  /* ensure social SVGs are visible even if inherits color */
+  .social-icons a .s-ico svg *{fill:currentColor}
+  .social-icons a .s-ico svg{color:inherit}
+  /* Font Awesome icon sizing */
+  .social-icons a .s-ico i{font-size:16px;line-height:1;color:inherit}
+  /* about row icon: support Font Awesome inside and Material Icons fallback */
+  .about-row-icon i{font-size:18px}
+  .about-row-icon .material-icons{font-size:20px}
+  /* scroll top button border and visibility */
+  #scrollTop{border:1px solid rgba(0,0,0,0.12);background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(16,24,40,0.08)}
+
+</style>
+
+<style>
+/* detail icons */
+.detail-icons{display:flex;gap:8px;margin-top:8px}
+.detail-icons a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;background:#fff;border:1px solid #eee;color:var(--g-blue);text-decoration:none}
+.detail-icons a .material-icons{font-size:18px}
+</style>
+
+<script src="api.js"></script>
+<script>
+function getParam(key){ return new URLSearchParams(window.location.search).get(key); }
+function tryParseJSON(str){ try{ return JSON.parse(str); }catch(e){ return null; } }
+function prettyJSON(obj){ try{ return JSON.stringify(obj,null,2); }catch(e){ return String(obj); } }
+
+// determine open/closed from various formats (adapted)
+function isOpenNow(raw){
+  if(!raw) return null;
+  let obj = null;
+  try{ obj = JSON.parse(raw); }catch(e){ obj = raw; }
+  const now = new Date(); const today = now.getDay(); const nowMinutes = now.getHours()*60 + now.getMinutes();
+  if(obj && obj.periods && Array.isArray(obj.periods)){
+    for(const p of obj.periods){
+      if(p.open){
+        const openDay = Number(p.open.day); const openTime = (''+p.open.time).padStart(4,'0'); const openMin = Number(openTime.slice(0,2))*60 + Number(openTime.slice(2));
+        if(p.close){ const closeDay = Number(p.close.day); const closeTime = (''+p.close.time).padStart(4,'0'); const closeMin = Number(closeTime.slice(0,2))*60 + Number(closeTime.slice(2));
+          if(openDay===today && closeDay===today){ if(nowMinutes>=openMin && nowMinutes<closeMin) return true; }
+          if(openDay===today && closeDay!==today){ if(nowMinutes>=openMin) return true; }
+          if(closeDay===today && openDay!==today){ if(nowMinutes<closeMin) return true; }
+        } else { if(openDay===today && nowMinutes>=openMin) return true; }
+      }
+    }
+    return false;
+  }
+  if(obj && obj.weekday_text && Array.isArray(obj.weekday_text)){
+    const txt = obj.weekday_text[today]||obj.weekday_text[0]||''; if(!txt) return null; if(/closed/i.test(txt)) return false; if(/open/i.test(txt)||/-/i.test(txt)) return true; return null;
+  }
+  if(typeof obj === 'string'){ if(/closed/i.test(obj)) return false; if(/open/i.test(obj)||/-/i.test(obj)) return true; }
+  return null;
+}
+
+// star rendering (returns element)
+function renderStars(ratingVal){
+  const span = document.createElement('span'); span.className='rating-wrap';
+  if(ratingVal===null || ratingVal===undefined) { span.textContent = 'Sin calificación'; return span; }
+  const rounded = Math.round(ratingVal*2)/2; const full = Math.floor(rounded); const half = (rounded-full)===0.5;
+  const ns = 'http://www.w3.org/2000/svg';
+  const pathD = 'M12 .587l3.668 7.431L23.6 9.75l-5.8 5.657L19.335 24 12 19.897 4.665 24l1.535-8.593L0.4 9.75l7.932-1.732z';
+  function starSVG(type){ const svg = document.createElementNS(ns,'svg'); svg.setAttribute('viewBox','0 0 24 24'); svg.setAttribute('class','star-svg '+type); if(type==='half'){ const uid='cp'+Math.floor(Math.random()*1e9); const defs=document.createElementNS(ns,'defs'); const clip=document.createElementNS(ns,'clipPath'); clip.setAttribute('id',uid); const rect=document.createElementNS(ns,'rect'); rect.setAttribute('x','0');rect.setAttribute('y','0');rect.setAttribute('width','12');rect.setAttribute('height','24'); clip.appendChild(rect); defs.appendChild(clip); svg.appendChild(defs); const path=document.createElementNS(ns,'path'); path.setAttribute('d',pathD); path.setAttribute('clip-path','url(#'+uid+')'); svg.appendChild(path); const outline=document.createElementNS(ns,'path'); outline.setAttribute('d',pathD); outline.setAttribute('class','star-outline'); svg.appendChild(outline); return svg; } const path = document.createElementNS(ns,'path'); path.setAttribute('d',pathD); svg.appendChild(path); return svg; }
+  for(let i=1;i<=5;i++){ if(i<=full) span.appendChild(starSVG('full')); else if(i===full+1 && half) span.appendChild(starSVG('half')); else span.appendChild(starSVG('empty')); }
+  const num = document.createElement('span'); num.className='rating-num'; num.textContent = parseFloat(ratingVal).toFixed(1) + ' · ' + (isNaN(ratingVal)?'Sin calificación':'reseñas'); num.style.marginLeft='6px'; span.appendChild(num);
+  return span;
+}
+
+let mapInstance = null;
+
+async function init(){
+  let data = [];
+  try{ console.time('loadData'); data = await loadData(); console.timeEnd('loadData'); }catch(err){ console.error('Error loading data',err); document.getElementById('content').innerHTML = '<p>Error cargando datos. Revisa la consola.</p>'; return; }
+  const enriched = data.map((b,i)=>({...b,_id:i}));
+  const slug = getParam('slug'); let b = null; if(slug){ b = enriched.find(bb=>bb.slug===slug||String(bb._id)===slug); } else { const id = parseInt(getParam('id')); b = enriched[id]; }
+  if(!b){ document.getElementById('content').innerHTML = '<p>Negocio no encontrado.</p>'; return; }
+
+  document.getElementById('name').textContent = b.name || '';
+  document.getElementById('category').textContent = b.category || '';
+  // restore textual address in header and populate contact section below description
+  const addrTextEl = document.getElementById('address_text'); if(addrTextEl) addrTextEl.textContent = b.full_address || '';
+  document.getElementById('description').innerHTML = b.description || '';
+  // contact card elements
+  const mapHref = (function(){ const m = (b.map_url||b.mapUrl||b.map||'').trim(); if(m) return m; if(b.full_address) return 'https://maps.google.com/maps?q=' + encodeURIComponent(b.full_address); return null; })();
+  const ca = document.getElementById('contact_address'); if(ca){ if(mapHref){ ca.innerHTML = `<a href="${mapHref}" target="_blank" rel="noopener"><span class="material-icons">place</span><span class="contact-text">${b.full_address||''}</span></a>`; } else { ca.innerHTML = `<span class="material-icons">place</span><span class="contact-text">${b.full_address||''}</span>`; } }
+  // hide address row if empty
+  if(ca){ const addrEmpty = !b.full_address || String(b.full_address).trim() === ''; if(addrEmpty){ ca.style.display = 'none'; } else { ca.style.display = 'flex'; } }
+  const cp = document.getElementById('contact_phone'); if(cp){ if(b.phone){ cp.href = 'tel:'+b.phone; cp.querySelector('.contact-text').textContent = b.phone; cp.style.display = 'inline-flex'; } else { cp.style.display='none'; } }
+  const cs = document.getElementById('contact_site'); if(cs){ if(b.site){ cs.href = b.site; cs.querySelector('.contact-text').textContent = b.site; cs.style.display = 'inline-flex'; } else { cs.style.display='none'; } }
+  const ce = document.getElementById('contact_email'); if(ce){ if(b.email){ ce.href = 'mailto:'+b.email; ce.querySelector('.contact-text').textContent = b.email; ce.style.display = 'inline-flex'; } else { ce.style.display='none'; } }
+
+  // ensure website shows in contact list (some sites may be in `site` or `website` fields)
+  if(!b.site){ const siteAlt = Object.keys(b).find(k=>k.toLowerCase().indexOf('site')!==-1 || k.toLowerCase().indexOf('website')!==-1); if(siteAlt) b.site = b[siteAlt]; }
+
+  // wire header action buttons: call, site, and direction (map) — guarded if controls missing
+  const callBtn = document.getElementById('callBtn');
+  if(callBtn){ if(b.phone){ callBtn.href = 'tel:'+b.phone; callBtn.title='Llamar'; callBtn.removeAttribute('aria-disabled'); } else { callBtn.href='#'; callBtn.setAttribute('aria-disabled','true'); } }
+  const siteBtn = document.getElementById('siteBtn');
+  if(siteBtn){ if(b.site){ siteBtn.href = b.site; siteBtn.title='Visitar web'; siteBtn.removeAttribute('aria-disabled'); } else { siteBtn.href='#'; siteBtn.setAttribute('aria-disabled','true'); } }
+  const dirBtn = document.getElementById('waBtn');
+  if(dirBtn){ if(mapHref){ dirBtn.href = mapHref; dirBtn.title = 'Dirección'; dirBtn.removeAttribute('aria-disabled'); } else { dirBtn.href = '#'; dirBtn.setAttribute('aria-disabled','true'); } }
+
+  // reviews button in sidebar — prefer location_reviews_link when available
+  const reviewBtn = document.getElementById('reviewBtn');
+  const reviewHref = getField(b,'location_reviews_link') || getField(b,'location_reviews') || getField(b,'reviews_link') || getField(b,'review_link') || getField(b,'reviewsUrl') || getField(b,'reviews_url') || getField(b,'reviews') || getField(b,'reviewsLink');
+  if(reviewBtn){ if(reviewHref){ reviewBtn.href = reviewHref; reviewBtn.style.display = 'inline-block'; reviewBtn.target = '_blank'; reviewBtn.rel = 'noopener'; } else { reviewBtn.style.display = 'none'; } }
+  // mobile review button (in header actions)
+  const reviewBtnMobile = document.getElementById('reviewBtnMobile');
+  if(reviewBtnMobile){ if(reviewHref){ reviewBtnMobile.href = reviewHref; reviewBtnMobile.style.display = 'inline-flex'; reviewBtnMobile.target = '_blank'; reviewBtnMobile.rel = 'noopener'; } else { reviewBtnMobile.style.display = 'none'; } }
+
+  // rating
+  const ratingKeys = ['rating','ratings','stars','score']; let ratingVal = null; for(const k of ratingKeys){ if(b[k] && !isNaN(parseFloat(b[k]))){ ratingVal = parseFloat(b[k]); break; } }
+  const rw = document.getElementById('ratingWrap'); rw.innerHTML=''; rw.appendChild(renderStars(ratingVal));
+
+  // open/closed
+  const openState = isOpenNow(b.working_hours || b.opening_hours || b.opening_hours || b.working_hours);
+  const osEl = document.getElementById('openState'); osEl.textContent=''; osEl.className='badge'; if(openState===true){ osEl.textContent='Abierto'; osEl.classList.add('open'); } else if(openState===false){ osEl.textContent='Cerrado'; osEl.classList.add('closed'); }
+
+  
+
+  // working hours: use only monday..sunday columns from the CSV as requested
+  const scheduleList = document.getElementById('scheduleList');
+  if(!scheduleList) console.warn('scheduleList element not found in DOM');
+  const whRaw = (function(){
+    const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+    const found = {};
+    let any = false;
+    for(const d of days){
+      // case-insensitive key lookup
+      for(const k of Object.keys(b)){
+        if(k.toLowerCase() === d){ found[d] = b[k]; any = true; break; }
+      }
+    }
+    return any ? found : null;
+  })();
+  function weekdayName(i){ return ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][i]; }
+  function renderSchedule(raw){
+    // If we have monday..sunday object from CSV, render in Lunes..Domingo order
+    if(!scheduleList) return; // nothing to render into
+    if(raw && typeof raw === 'object'){
+      const order = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+      const display = {'monday':'Lunes','tuesday':'Martes','wednesday':'Miércoles','thursday':'Jueves','friday':'Viernes','saturday':'Sábado','sunday':'Domingo'};
+      const now = new Date(); const todayIndex = now.getDay(); // 0=Sunday
+      // clear desktop and mobile lists if present
+      if(scheduleList) scheduleList.innerHTML='';
+      const mobileList = document.getElementById('scheduleListMobile'); if(mobileList) mobileList.innerHTML='';
+      order.forEach((d,i)=>{
+        const key = Object.keys(raw).find(k=>k.toLowerCase()===d);
+        const val = key ? raw[key] : '';
+        let timesText = '';
+        if(Array.isArray(val)) timesText = val.join(', ');
+        else if(typeof val === 'string') timesText = val;
+        else if(val && typeof val === 'object') timesText = JSON.stringify(val);
+        timesText = timesText || 'Cerrado';
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="day">${display[d]}</span><span class="times">${timesText}</span>`;
+        if(/cerrado/i.test(timesText)) li.classList.add('closed');
+        const isToday = (todayIndex === 0 && d==='sunday') || (todayIndex > 0 && order[todayIndex-1] === d);
+        if(isToday) li.classList.add('today');
+        if(scheduleList) scheduleList.appendChild(li.cloneNode(true));
+        if(mobileList) mobileList.appendChild(li.cloneNode(true));
+      });
+      return;
+    }
+
+    const li = document.createElement('li'); li.innerHTML = '<span class="day">Horario</span><span class="times">No disponible</span>'; scheduleList.appendChild(li);
+  }
+  renderSchedule(whRaw);
+
+  // show today's status as a badge in the schedule card
+  const todayStatus = document.getElementById('todayStatus');
+  const todayBadge = document.getElementById('todayBadge');
+  const todayStatusMobile = document.getElementById('todayStatusMobile');
+  const todayBadgeMobile = document.getElementById('todayBadgeMobile');
+  const tState = isOpenNow(b.working_hours || b.opening_hours || b.opening_hours || b.working_hours);
+  if(todayBadge){
+    if(tState===true){ todayBadge.textContent = 'Abierto ahora'; todayBadge.className = 'badge open'; todayBadge.style.display='inline-block'; }
+    else if(tState===false){ todayBadge.textContent = 'Cerrado ahora'; todayBadge.className = 'badge closed'; todayBadge.style.display='inline-block'; }
+    else { todayBadge.style.display='none'; }
+  }
+  if(todayBadgeMobile){
+    if(tState===true){ todayBadgeMobile.textContent = 'Abierto ahora'; todayBadgeMobile.className = 'badge open'; todayBadgeMobile.style.display='inline-block'; }
+    else if(tState===false){ todayBadgeMobile.textContent = 'Cerrado ahora'; todayBadgeMobile.className = 'badge closed'; todayBadgeMobile.style.display='inline-block'; }
+    else { todayBadgeMobile.style.display='none'; }
+  }
+
+  // about JSON: parse and render (if present) — we'll render in a Google-Maps-like list
+  const aboutRaw = b.about_json || b.about || b.aboutJson || b.info || '';
+  let aboutObj = null;
+  if(aboutRaw){ if(typeof aboutRaw === 'object') aboutObj = aboutRaw; else { try{ aboutObj = JSON.parse(aboutRaw); }catch(e){ aboutObj = null; } } }
+  const aboutText = aboutObj? prettyJSON(aboutObj) : (typeof aboutRaw === 'string'? aboutRaw : '');
+
+  function keyIconFor(k){
+    k = (k||'').toLowerCase();
+    if(k.includes('phone')||k.includes('tel')) return 'call';
+    if(k.includes('whatsapp')||k.includes('wa')||k.includes('whats')) return 'chat';
+    if(k.includes('site')||k.includes('url')||k.includes('web')||k.includes('website')) return 'public';
+    if(k.includes('address')||k.includes('direccion')||k.includes('loc')||k.includes('ubicacion')) return 'place';
+    if(k.includes('email')) return 'email';
+    if(k.includes('price')||k.includes('cost')||k.includes('precio')||k.includes('tarifa')) return 'attach_money';
+    if(k.includes('schedule')||k.includes('hours')||k.includes('horario')||k.includes('opening')) return 'schedule';
+    if(k.includes('rating')||k.includes('stars')||k.includes('valoracion')) return 'star';
+    if(k.includes('wifi')||k.includes('internet')) return 'wifi';
+    if(k.includes('parking')||k.includes('estacionamiento')) return 'local_parking';
+    if(k.includes('children')||k.includes('kids')||k.includes('niños')) return 'child_care';
+    if(k.includes('pet')||k.includes('mascota')) return 'pets';
+    if(k.includes('wheel')||k.includes('accesible')||k.includes('minus')) return 'accessible';
+    if(k.includes('veg')||k.includes('vegetar')||k.includes('vegan')) return 'restaurant';
+    if(k.includes('reservation')||k.includes('reserva')) return 'event';
+    if(k.includes('payment')||k.includes('card')||k.includes('tarjeta')) return 'credit_card';
+    // additional Spanish/variants
+    if(k.includes('servicios')) return 'build';
+    if(k.includes('especialidad')||k.includes('especialidades')) return 'local_dining';
+    if(k.includes('menu')||k.includes('plato')||k.includes('platos')) return 'menu_book';
+    if(k.includes('delivery')||k.includes('entrega')) return 'delivery_dining';
+    if(k.includes('takeaway')||k.includes('llevar')||k.includes('para llevar')) return 'takeout_dining';
+    if(k.includes('efectivo')||k.includes('cash')) return 'payments';
+    if(k.includes('horario')&&k.includes('entrega')) return 'local_shipping';
+    if(k.includes('acepta')&&k.includes('reserva')) return 'event_available';
+    return 'info';
+  }
+
+  function renderAboutObject(obj){
+    const list = document.getElementById('about_json_list'); if(!list) return;
+    list.innerHTML = '';
+    const labelMap = {
+      'opening_hours':'Horario', 'opening-hours':'Horario','hours':'Horario','monday':'Lunes','tuesday':'Martes','wednesday':'Miércoles','thursday':'Jueves','friday':'Viernes','saturday':'Sábado','sunday':'Domingo',
+      'delivery':'Entrega a domicilio','entrega a domicilio':'Entrega a domicilio','takeaway':'Para llevar','para llevar':'Para llevar','dine_in':'Consumo en el lugar','consumo en el lugar':'Consumo en el lugar',
+      'phone':'Teléfono','email':'Email','site':'Sitio web','website':'Sitio web','full_address':'Dirección','address':'Dirección','rating':'Calificación'
+    };
+    function prettyLabel(k){ const lower = k.toLowerCase(); if(labelMap[lower]) return labelMap[lower]; return k.replace(/_|-/g,' ').replace(/\b\w/g, c => c.toUpperCase()); }
+
+    const skipKeys = new Set(['opening_hours','opening-hours','hours','weekday_text','monday','tuesday','wednesday','thursday','friday','saturday','sunday']);
+    Object.keys(obj).forEach(k=>{
+      const lowerK = (k||'').toLowerCase();
+      if(skipKeys.has(lowerK)) return;
+      const v = obj[k];
+      if(v===null || v===undefined) return;
+
+      const li = document.createElement('li');
+      // top area with icon + title
+      const top = document.createElement('div'); top.className = 'about-row-top';
+      const rowIcon = document.createElement('span'); rowIcon.className = 'about-row-icon';
+      // try to render Font Awesome icon first, fallback to Material Icons
+      function renderRowIcon(key){
+        const faMap = {
+          phone: 'fas fa-phone', chat: 'fab fa-whatsapp', public: 'fas fa-globe', place: 'fas fa-map-marker-alt', email: 'fas fa-envelope', attach_money: 'fas fa-money-bill-wave', schedule: 'fas fa-clock', star: 'fas fa-star', wifi: 'fas fa-wifi', local_parking: 'fas fa-parking', child_care: 'fas fa-child', pets: 'fas fa-paw', accessible: 'fas fa-wheelchair', restaurant: 'fas fa-utensils', event: 'fas fa-calendar-check', credit_card: 'fas fa-credit-card', build: 'fas fa-tools', local_dining: 'fas fa-hamburger', menu_book: 'fas fa-book', delivery_dining: 'fas fa-truck', takeout_dining: 'fas fa-box', payments: 'fas fa-money-check-alt', local_shipping: 'fas fa-shipping-fast', event_available: 'fas fa-calendar-alt', info: null
+        };
+        const normalized = (key||'').toLowerCase();
+        // find a simple mapping by substring
+        for(const sub of Object.keys(faMap)){
+          if(normalized.indexOf(sub) !== -1 && faMap[sub]){
+            const i = document.createElement('i'); i.className = faMap[sub]; i.setAttribute('aria-hidden','true'); return i;
+          }
+        }
+        return null;
+      }
+      const faIcon = renderRowIcon(k);
+      if(faIcon){ rowIcon.appendChild(faIcon); }
+      else { const m = document.createElement('span'); m.className='material-icons'; m.textContent = keyIconFor(k); rowIcon.appendChild(m); }
+      const lab = document.createElement('div'); lab.className='label'; lab.textContent = prettyLabel(k);
+      top.appendChild(rowIcon); top.appendChild(lab);
+      const valWrap = document.createElement('div'); valWrap.className = 'about-values';
+
+      // boolean-like strings
+      if(typeof v === 'string' && (v.toLowerCase()==='true' || v.toLowerCase()==='false')){
+        if(v.toLowerCase()==='true'){
+          const item = document.createElement('div'); item.className='about-item'; const ic = document.createElement('span'); ic.className='material-icons'; ic.textContent='check'; item.appendChild(ic); const t = document.createElement('span'); t.textContent = 'Sí'; item.appendChild(t); valWrap.appendChild(item);
+        } else { const item = document.createElement('div'); item.className='about-item'; item.textContent = 'No'; valWrap.appendChild(item); }
+      }
+      else if(typeof v === 'boolean'){
+        if(v){ const item = document.createElement('div'); item.className='about-item'; const ic = document.createElement('span'); ic.className='material-icons'; ic.textContent='check'; item.appendChild(ic); const t = document.createElement('span'); t.textContent = 'Sí'; item.appendChild(t); valWrap.appendChild(item); }
+        else { const item = document.createElement('div'); item.className='about-item'; item.textContent = 'No'; valWrap.appendChild(item); }
+      }
+      else if(Array.isArray(v)){
+        v.forEach(entry=>{ if(entry===null||entry===undefined) return; const item = document.createElement('div'); item.className='about-item'; const ic = document.createElement('span'); ic.className='material-icons'; ic.textContent='check'; item.appendChild(ic); const t = document.createElement('span'); t.textContent = String(entry); item.appendChild(t); valWrap.appendChild(item); });
+      }
+      else if(typeof v === 'object'){
+        const keys = Object.keys(v||{});
+        const allBool = keys.length>0 && keys.every(kk => typeof v[kk] === 'boolean');
+        if(allBool){
+          keys.forEach(kk=>{ if(v[kk]){ const item = document.createElement('div'); item.className='about-item'; const ic = document.createElement('span'); ic.className='material-icons'; ic.textContent='check'; item.appendChild(ic); const t = document.createElement('span'); t.textContent = kk; item.appendChild(t); valWrap.appendChild(item); } });
+        } else {
+          // fallback: stringified block
+          const pre = document.createElement('pre'); pre.style.margin='0'; pre.style.whiteSpace='pre-wrap'; pre.textContent = JSON.stringify(v,null,2); valWrap.appendChild(pre);
+        }
+      }
+      else {
+        const vStr = String(v).trim(); if(vStr==='') return; if(/^https?:\/\//.test(vStr)){ const a = document.createElement('a'); a.href = vStr; a.target = '_blank'; a.rel = 'noopener'; a.textContent = vStr; valWrap.appendChild(a); }
+        else if(vStr.indexOf('\n')!==-1){ const pre = document.createElement('pre'); pre.style.margin='0'; pre.style.whiteSpace='pre-wrap'; pre.textContent = vStr; valWrap.appendChild(pre); }
+        else { const item = document.createElement('div'); item.className='about-item'; item.textContent = vStr; valWrap.appendChild(item); }
+      }
+
+      // if nothing added, show fallback
+      if(!valWrap.hasChildNodes()){ const item = document.createElement('div'); item.className='about-item'; item.textContent = 'No'; valWrap.appendChild(item); }
+
+      li.appendChild(top); li.appendChild(valWrap); list.appendChild(li);
+    });
+    const last = list.querySelector('li:last-child'); if(last) last.style.borderBottom='0';
+  }
+
+  if(aboutObj) renderAboutObject(aboutObj);
+
+  // render only allowed fields into a simple table (user requested to keep only chosen fields)
+  const fieldsContainer = document.getElementById('fields_table');
+  function renderSelectedFields(obj){
+    // Render only non-empty fields. Use a preferred order first, then append remaining keys in the CSV order.
+    const preferred = ['name','category','rating','full_address','phone','email','site','whatsapp_link','monday','tuesday','wednesday','thursday','friday','saturday','sunday','cid','map_url','latitude','longitude','logo','featured_image'];
+    const used = new Set();
+    const tbl = document.createElement('table'); tbl.style.width='100%'; tbl.style.borderCollapse='collapse';
+    const tbody = document.createElement('tbody');
+
+    function pushRow(key){
+      if(!key) return;
+      const v = obj[key];
+      let vStr = '';
+      if(v===null || v===undefined) vStr = '';
+      else if(typeof v === 'object') vStr = JSON.stringify(v);
+      else vStr = String(v).trim();
+      if(vStr === '') return;
+      used.add(key);
+      const tr = document.createElement('tr'); tr.style.borderBottom='1px solid #f4f4f4';
+      const tdk = document.createElement('td'); tdk.className = 'field-key'; tdk.textContent = key;
+      const tdv = document.createElement('td'); tdv.className = 'field-val';
+      if((typeof v === 'string' && v.match(/^https?:\/\//)) || key.toLowerCase().indexOf('url')!==-1){
+        const a = document.createElement('a'); a.href = vStr || '#'; a.target='_blank'; a.rel='noopener'; a.textContent = vStr || '';
+        tdv.appendChild(a);
+      } else if(typeof v === 'string' && v.indexOf('\n') !== -1){
+        const pre = document.createElement('pre'); pre.style.margin='0'; pre.style.whiteSpace='pre-wrap'; pre.textContent = vStr; tdv.appendChild(pre);
+      } else {
+        tdv.textContent = vStr;
+      }
+      tr.appendChild(tdk); tr.appendChild(tdv); tbody.appendChild(tr);
+    }
+
+    // preferred order
+    preferred.forEach(pref => {
+      const key = Object.keys(obj).find(x=>x.toLowerCase()===pref);
+      if(key) pushRow(key);
+    });
+
+    // append any remaining keys in object order (CSV header order)
+    Object.keys(obj).forEach(k => { if(!used.has(k)) pushRow(k); });
+
+    tbl.appendChild(tbody);
+    if(fieldsContainer) { fieldsContainer.innerHTML=''; fieldsContainer.appendChild(tbl); }
+  }
+  if(fieldsContainer) renderSelectedFields(b);
+
+  // socials: show official-ish SVG icons (simplified inline SVGs)
+  function faClassFor(key){
+    const map = { facebook: 'fab fa-facebook-f', instagram: 'fab fa-instagram', x: 'fab fa-x', twitter: 'fab fa-twitter', youtube: 'fab fa-youtube', linkedin: 'fab fa-linkedin-in' };
+    return map[key] || 'fab fa-star';
+  }
+
+  const socials = document.getElementById('socials');
+  const socialsMobile = document.getElementById('socials_mobile');
+  function appendSocials(container){ if(!container) return; ['linkedin','facebook','instagram','x','youtube'].forEach(k=>{ if(b[k]){ const li = document.createElement('li'); const cls = faClassFor(k); li.innerHTML = `<a target="_blank" rel="noopener" href="${b[k]}" aria-label="${k}"><span class="s-ico"><i class="${cls}" aria-hidden="true"></i></span><span class="s-label">${k}</span></a>`; container.appendChild(li); } }); }
+  appendSocials(socials); appendSocials(socialsMobile);
+
+  // images
+  // Prefer not to show images when fields are empty or links are broken.
+  function findImageField(obj, names){ for(const n of names){ const key = Object.keys(obj).find(k=>k.toLowerCase()===n.toLowerCase()); if(key && obj[key]) return obj[key]; } return null; }
+  const logoUrl = findImageField(b, ['logo','logo_url','logoUrl','image','img','photo','picture']);
+  const logoEl = document.getElementById('logo');
+  function makePlaceholder(name,w=640,h=380){
+    const safe = String(name||'Imagen no disponible').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="#f1f3f4"/><g fill="#c7cdd3"><path d="M${Math.round(w*0.3)} ${Math.round(h*0.75)}h${Math.round(w*0.4)}v8H${Math.round(w*0.3)}z"/></g><text x="50%" y="50%" fill="#9aa3ab" font-family="Roboto, Arial, sans-serif" font-size="18" text-anchor="middle" dy=".3em">${safe}</text></svg>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  }
+  if(logoEl){
+    if(logoUrl && String(logoUrl).trim() !== ''){
+      logoEl.src = logoUrl; logoEl.style.display = '';
+      logoEl.onerror = ()=>{ logoEl.style.display = 'none'; };
+    } else {
+      // hide logo when no URL
+      logoEl.style.display = 'none';
+    }
+  }
+
+  const featUrl = findImageField(b, ['featured_image','featured','image','img','photo','picture','photo_url','image_url']);
+  const fimg = document.getElementById('featured_image');
+  if(fimg){
+    if(featUrl && String(featUrl).trim() !== ''){
+      fimg.src = featUrl; fimg.style.display = 'block';
+      fimg.onerror = ()=>{ fimg.style.display = 'none'; };
+    } else {
+      // hide featured image when no URL
+      fimg.style.display = 'none';
+    }
+  }
+
+  // aggressive preloading: create Image and <link rel=preload> to reduce visible load time
+  try{
+    const imgs = [];
+    if(logoEl && logoEl.src) imgs.push(logoEl.src);
+    if(fimg && fimg.src) imgs.push(fimg.src);
+    imgs.forEach(u=>{
+      try{
+        // add preload link
+        const l = document.createElement('link'); l.rel='preload'; l.as='image'; l.href = u; document.head.appendChild(l);
+      }catch(e){}
+      try{ const im = new Image(); im.src = u; }catch(e){}
+    });
+  }catch(e){}
+
+  // map embedding helper: can inject into any container element
+  function getField(obj, name){ if(!obj) return undefined; const key = Object.keys(obj).find(k=>k.toLowerCase()===name.toLowerCase()); return key? obj[key]: undefined; }
+  function getNumberField(obj, names){ for(const n of names){ const v = getField(obj,n); if(v!==undefined && v!==null && v!==''){ const f = parseFloat(String(v).replace(',', '.')); if(!isNaN(f)) return f; } } return null; }
+
+  const rawMapUrl = getField(b,'map_url') || getField(b,'mapUrl') || getField(b,'map') || null;
+  const rawCid = getField(b,'cid') || null;
+  const lat = getNumberField(b,['latitude','lat','y']);
+  const lon = getNumberField(b,['longitude','lon','lng','x']);
+
+  function buildEmbedFromUrl(url){
+    if(!url) return null;
+    try{
+      const u = new URL(url, window.location.origin);
+      const s = u.href;
+      // try to extract @lat,lon pattern
+      const m = s.match(/@(-?[0-9]+\.?[0-9]*),(-?[0-9]+\.?[0-9]*)/);
+      if(m) return 'https://maps.google.com/maps?q=' + m[1] + ',' + m[2] + '&z=15&output=embed';
+      // try q=lat,lon
+      const q = u.searchParams.get('q'); if(q && /-?\d/.test(q)) return 'https://maps.google.com/maps?q=' + encodeURIComponent(q) + '&z=15&output=embed';
+      // if it's a google maps url try simple replacement to /embed (may work in many cases)
+      if(s.indexOf('google.com/maps')!==-1 && s.indexOf('/embed')===-1){ return s.replace('/maps','/maps/embed'); }
+      return null;
+    }catch(e){ return null; }
+  }
+
+  function embedMap(container){
+    if(!container) return;
+    const embedFromMapUrl = buildEmbedFromUrl(rawMapUrl);
+    if(embedFromMapUrl){
+      const iframe = document.createElement('iframe'); iframe.src = embedFromMapUrl; iframe.style.width = '100%'; iframe.style.height = '100%'; iframe.style.border = '0'; iframe.loading = 'lazy'; iframe.allowFullscreen = true; container.innerHTML = ''; container.appendChild(iframe); return;
+    }
+    if(rawCid){
+      const src = 'https://www.google.com/maps?cid=' + encodeURIComponent(rawCid) + '&output=embed';
+      const iframe = document.createElement('iframe'); iframe.src = src; iframe.style.width = '100%'; iframe.style.height = '100%'; iframe.style.border = '0'; iframe.loading = 'lazy'; iframe.allowFullscreen = true; container.innerHTML = ''; container.appendChild(iframe); return;
+    }
+    if(lat!==null && lon!==null){
+      const src = 'https://maps.google.com/maps?q=' + encodeURIComponent(lat + ',' + lon) + '&z=15&output=embed';
+      const iframe = document.createElement('iframe'); iframe.src = src; iframe.style.width = '100%'; iframe.style.height = '100%'; iframe.style.border = '0'; iframe.loading = 'lazy'; iframe.allowFullscreen = true; container.innerHTML = ''; container.appendChild(iframe); return;
+    }
+    // fallback to leaflet if coordinates available via other fields
+    const lat2 = getNumberField(b,['latitude','lat']); const lon2 = getNumberField(b,['longitude','lon','lng']);
+    if(lat2!==null && lon2!==null){
+      try{
+        container.innerHTML = '';
+        const mapDivId = container.id || ('map_' + Math.random().toString(36).slice(2));
+        container.id = mapDivId;
+        const m = L.map(mapDivId, { zoomControl: true }).setView([lat2,lon2],15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
+        L.marker([lat2,lon2]).addTo(m).bindPopup(b.name||'');
+        m.zoomControl && m.zoomControl.setPosition('topright');
+        setTimeout(()=>{ try{ m.invalidateSize(); }catch(e){} }, 300);
+        return;
+      }catch(e){ container.innerHTML = 'Mapa no disponible'; return; }
+    }
+    container.innerHTML = 'Ubicación no disponible';
+  }
+
+  // embed map into sidebar and main column
+  embedMap(document.getElementById('map'));
+  embedMap(document.getElementById('map_main'));
+
+  // copy about JSON (only if control exists)
+  const copyBtn = document.getElementById('copyAbout');
+  if(copyBtn){ copyBtn.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(aboutText||''); alert('JSON copiado al portapapeles'); }catch(e){ alert('No se pudo copiar'); } }); }
+}
+
+init();
+</script>
+<!-- Scroll to top button -->
+<a id="scrollTop" class="action-btn" href="#" title="Subir arriba" style="display:none;position:fixed;right:18px;bottom:18px;z-index:9999">
+  <span class="material-icons">arrow_upward</span>
+</a>
+<script>
+// Scroll-to-top button behavior
+;(function(){
+  const btn = document.getElementById('scrollTop');
+  if(!btn) return;
+  function update(){ if(window.scrollY>240){ btn.style.display='inline-flex'; } else { btn.style.display='none'; } }
+  window.addEventListener('scroll', update, { passive:true });
+  btn.addEventListener('click', function(e){ e.preventDefault(); window.scrollTo({ top:0, behavior:'smooth' }); });
+  // initial
+  update();
+})();
+</script>
+<script>
+// Header: make it fixed when user scrolls past header height
+(function(){
+  const header = document.querySelector('.site-header');
+  const content = document.querySelector('.detail-container');
+  if(!header || !content) return;
+  const h = parseInt(getComputedStyle(header).height) || 64;
+  let ticking = false;
+  function onScroll(){ if(ticking) return; ticking = true; window.requestAnimationFrame(()=>{ const y = window.scrollY || window.pageYOffset; if(y>h){ if(!header.classList.contains('scrolled')){ header.classList.add('scrolled'); content.style.paddingTop = `calc(${h}px + 12px)`; } } else { if(header.classList.contains('scrolled')){ header.classList.remove('scrolled'); content.style.paddingTop = ''; } } ticking = false; }); }
+  window.addEventListener('scroll', onScroll, { passive:true });
+  // run once
+  onScroll();
+})();
+</script>
+<script>
+// Global safety: hide any <img> that has no src or that fails to load.
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    document.querySelectorAll('img').forEach(function(img){
+      const src = img.getAttribute('src');
+      if(!src || String(src).trim() === ''){
+        img.style.display = 'none';
+      }
+      // ensure broken images are hidden
+      img.addEventListener('error', function(){ img.style.display = 'none'; });
+    });
+  }catch(e){}
+});
+</script>
+</body>
+</html>
