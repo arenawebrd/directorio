@@ -389,9 +389,11 @@ async function init() {
 
   // init map centered roughly
   map = L.map('map').setView([40.4168, -3.7038], 6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  // Use CARTO Voyager raster tiles to approximate Mapbox Streets v11
+  // Note: Mapbox Streets is a vector style; Voyager is a raster style that visually resembles a street map.
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     maxZoom: 19,
-    attribution: '© OpenStreetMap contributors'
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
   }).addTo(map);
 
   // create cluster group for many markers
