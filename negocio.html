@@ -184,7 +184,7 @@ async function init(){
   // hide address row if empty
   if(ca){ const addrEmpty = !b.full_address || String(b.full_address).trim() === ''; if(addrEmpty){ ca.style.display = 'none'; } else { ca.style.display = 'flex'; } }
   const cp = document.getElementById('contact_phone'); if(cp){ if(b.phone){ cp.href = 'tel:'+b.phone; cp.querySelector('.contact-text').textContent = b.phone; cp.style.display = 'inline-flex'; } else { cp.style.display='none'; } }
-  const cs = document.getElementById('contact_site'); if(cs){ if(b.site){ cs.href = b.site; cs.querySelector('.contact-text').textContent = b.site; cs.style.display = 'inline-flex'; } else { cs.style.display='none'; } }
+  const cs = document.getElementById('contact_site'); if(cs){ if(b.site){ cs.href = b.site; cs.querySelector('.contact-text').textContent = b.site; cs.target = '_blank'; cs.rel = 'noopener noreferrer'; cs.style.display = 'inline-flex'; } else { cs.style.display='none'; } }
   const ce = document.getElementById('contact_email'); if(ce){ if(b.email){ ce.href = 'mailto:'+b.email; ce.querySelector('.contact-text').textContent = b.email; ce.style.display = 'inline-flex'; } else { ce.style.display='none'; } }
 
   // ensure website shows in contact list (some sites may be in `site` or `website` fields)
@@ -194,9 +194,9 @@ async function init(){
   const callBtn = document.getElementById('callBtn');
   if(callBtn){ if(b.phone){ callBtn.href = 'tel:'+b.phone; callBtn.title='Llamar'; callBtn.style.display = 'inline-flex'; } else { callBtn.style.display = 'none'; } }
   const siteBtn = document.getElementById('siteBtn');
-  if(siteBtn){ if(b.site){ siteBtn.href = b.site; siteBtn.title='Visitar web'; siteBtn.style.display = 'inline-flex'; } else { siteBtn.style.display = 'none'; } }
+  if(siteBtn){ if(b.site){ siteBtn.href = b.site; siteBtn.title='Visitar web'; siteBtn.target = '_blank'; siteBtn.rel = 'noopener noreferrer'; siteBtn.style.display = 'inline-flex'; } else { siteBtn.style.display = 'none'; } }
   const dirBtn = document.getElementById('waBtn');
-  if(dirBtn){ if(mapHref){ dirBtn.href = mapHref; dirBtn.title = 'Dirección'; dirBtn.style.display = 'inline-flex'; } else { dirBtn.style.display = 'none'; } }
+  if(dirBtn){ if(mapHref){ dirBtn.href = mapHref; dirBtn.title = 'Dirección'; dirBtn.target = '_blank'; dirBtn.rel = 'noopener noreferrer'; dirBtn.style.display = 'inline-flex'; } else { dirBtn.style.display = 'none'; } }
 
   // WhatsApp header button (new)
   const whatsappBtn = document.getElementById('whatsappBtn');

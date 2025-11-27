@@ -7,7 +7,7 @@
 	--muted:#6b6b6b;
 	--surface:#ffffff;
 }
-body{font-family:Roboto,Inter,Arial,Helvetica,sans-serif;margin:0;padding:18px;color:#202124;background:#fff}
+body{font-family:Roboto,Inter,Arial,Helvetica,sans-serif;margin:0;padding:18px;color:#202124;background:#fff;padding-bottom:40px}
 .header-left{display:flex;align-items:center;gap:12px}
 .header-left{display:flex;align-items:center;gap:12px}
 header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px}
@@ -33,7 +33,7 @@ header{display:flex;justify-content:space-between;align-items:center;margin-bott
 
 .controls .filter-actions{display:flex;align-items:center}
 .controls label.small{font-size:12px}
-.main{display:flex;gap:12px}
+.main{display:flex;gap:12px;margin-top:24px}
 .map{flex:1;min-height:520px;border-radius:8px;overflow:hidden}
 .list{width:380px;max-height:75vh;overflow:auto;padding:8px;border:1px solid #eee;background:#fafafa;border-radius:8px}
 .card{padding:12px;border-bottom:1px solid #eee;background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.3))}
