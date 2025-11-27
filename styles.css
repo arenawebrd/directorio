@@ -135,6 +135,11 @@ a{color:var(--g-blue)}
 	header .filter-actions{display:flex}
 }
 
+/* Hide the sidebar map on negocio/detail pages for small screens — the top map is sufficient */
+@media (max-width:720px){
+  .detail-container .side-col .mini-map{display:none !important}
+}
+
 /* mobile filter toggle button */
 .mobile-filter-toggle{display:none}
 
@@ -383,7 +388,7 @@ body{font-family:Roboto,Arial,sans-serif;color:#202124;background:#f7f8fb}
 	.detail-actions .action-btn{box-shadow:0 1px 3px rgba(16,24,40,0.06)}
 	.about-chip{display:inline-block;background:#e8f0fe;color:#1a73e8;padding:4px 8px;border-radius:14px;margin-right:6px;font-size:13px}
 	.about-chip .check{margin-right:6px}
-	@media (max-width:720px){ #map_main{display:block;height:220px} #map{display:none} }
+	@media (max-width:720px){ #map_main{display:block;height:220px} }
 
 	/* Specific tweaks requested: about_json icons blue, remove outer borders leaving only separators */
 	#about_json_list{background:transparent;border:0;padding:0;margin-top:8px}
