@@ -432,3 +432,8 @@ body{font-family:Roboto,Arial,sans-serif;color:#202124;background:#f7f8fb}
 
 /* End extracted CSS */
 
+/* Hide duplicate review button in the desktop sidebar (keeps markup but hides visually) */
+@media (min-width:721px){
+	.review-wrap.desktop-only{display:none !important}
+}
+

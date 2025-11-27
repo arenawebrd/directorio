@@ -10,6 +10,10 @@
 <link rel="stylesheet" href="styles.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Leaflet.markercluster for clustering many points -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 </head>
 <body>
 <header>
@@ -74,17 +78,40 @@ function el(tag, cls, html) {
 let businesses = [];
 let map;
 let markers = [];
+let clusterGroup = null;
 
 function fitMap() {
   if(!map) return;
-  const group = L.featureGroup(markers.map(m => m.marker));
-  if(group.getLayers().length) map.fitBounds(group.getBounds().pad(0.2));
+  try{
+    const group = clusterGroup || L.featureGroup(markers.map(m => m.marker));
+    if(group && group.getLayers && group.getLayers().length) map.fitBounds(group.getBounds().pad(0.2));
+  }catch(e){}
+}
+
+function createMapboxLikeIcon(color = '#1a73e8'){
+  // simple Mapbox-style pin SVG inside a DivIcon
+  const svg = encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 36 48">
+      <path d="M18 0C11.2 0 6 5.2 6 11.6c0 8.3 10.8 21.9 11.3 22.6.3.4.9.4 1.2 0 .5-.7 11.3-14.3 11.3-22.6C30 5.2 24.8 0 18 0z" fill="${color}"/>
+      <circle cx="18" cy="12" r="6" fill="#fff"/>
+    </svg>
+  `);
+  const icon = L.divIcon({
+    className: 'mapbox-marker',
+    html: `<img src="data:image/svg+xml;utf8,${svg}" alt="marker" style="width:36px;height:48px;display:block;"/>`,
+    iconSize: [36,48],
+    iconAnchor: [18,48],
+    popupAnchor: [0,-40]
+  });
+  return icon;
 }
 
 function addMarkers(filtered) {
   // remove old
-  markers.forEach(m => map.removeLayer(m.marker));
+  try{ if(clusterGroup){ clusterGroup.clearLayers(); } }catch(e){}
   markers = [];
+
+  const defaultIcon = createMapboxLikeIcon();
 
   filtered.forEach((b, i) => {
     if(!b.latitude || !b.longitude) return;
@@ -92,12 +119,13 @@ function addMarkers(filtered) {
     const lon = parseFloat(b.longitude);
     if(Number.isNaN(lat) || Number.isNaN(lon)) return;
 
-    const marker = L.marker([lat, lon]).addTo(map);
-    // prefer slug for SEO-friendly URLs when available
+    const icon = defaultIcon;
+    const marker = L.marker([lat, lon], {icon});
     const link = b.slug ? `negocio.html?slug=${encodeURIComponent(b.slug)}` : `negocio.html?id=${b._id}`;
     const popup = `<strong>${escapeHtml(b.name)}</strong><br/>${escapeHtml(b.full_address || '')}<br/><a href="${link}">Ver ficha</a>`;
     marker.bindPopup(popup);
     markers.push({marker, id: b._id});
+    if(clusterGroup) clusterGroup.addLayer(marker); else marker.addTo(map);
   });
   fitMap();
 }
@@ -365,6 +393,10 @@ async function init() {
     maxZoom: 19,
     attribution: '© OpenStreetMap contributors'
   }).addTo(map);
+
+  // create cluster group for many markers
+  clusterGroup = L.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false });
+  map.addLayer(clusterGroup);
 
   applyFilters();
 }
