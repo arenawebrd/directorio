@@ -57,7 +57,8 @@
       <a id="callBtn" class="action-btn" href="#" title="Llamar"><span class="material-icons">call</span></a>
       <a id="siteBtn" class="action-btn" href="#" title="Sitio"><span class="material-icons">public</span></a>
       <a id="waBtn" class="action-btn" href="#" title="Dirección"><span class="material-icons">place</span></a>
-      <a id="reviewBtnMobile" class="action-btn mobile-only review-mobile" href="#" title="Escribir reseña" style="display:none"><span class="material-icons">star_rate</span><span class="rev-label" style="display:none">Escribir reseña</span></a>
+      <a id="reviewBtnMobile" class="action-btn mobile-only review-mobile" href="#" title="Escribir reseña"><span class="material-icons">star_rate</span></a>
+      <a id="whatsappBtn" class="action-btn wa" href="#" title="WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>
     </div>
   </header>
 
@@ -113,7 +114,7 @@
       </article>
 
       <div class="review-wrap desktop-only" style="margin:12px 0">
-        <a id="reviewBtn" class="btn small" href="#" target="_blank" rel="noopener" style="display:none"><span class="material-icons" style="vertical-align:middle;margin-right:8px">star_rate</span>Escribir reseña</a>
+        <a id="reviewBtn" class="action-btn" href="#" target="_blank" rel="noopener" style="display:none"><span class="material-icons">star_rate</span></a>
       </div>
 
       <div class="card socials-card desktop-only"><h3>Redes</h3><ul id="socials" class="social-icons"></ul></div>
@@ -193,19 +194,42 @@ async function init(){
 
   // wire header action buttons: call, site, and direction (map) — guarded if controls missing
   const callBtn = document.getElementById('callBtn');
-  if(callBtn){ if(b.phone){ callBtn.href = 'tel:'+b.phone; callBtn.title='Llamar'; callBtn.removeAttribute('aria-disabled'); } else { callBtn.href='#'; callBtn.setAttribute('aria-disabled','true'); } }
+  if(callBtn){ if(b.phone){ callBtn.href = 'tel:'+b.phone; callBtn.title='Llamar'; callBtn.style.display = 'inline-flex'; } else { callBtn.style.display = 'none'; } }
   const siteBtn = document.getElementById('siteBtn');
-  if(siteBtn){ if(b.site){ siteBtn.href = b.site; siteBtn.title='Visitar web'; siteBtn.removeAttribute('aria-disabled'); } else { siteBtn.href='#'; siteBtn.setAttribute('aria-disabled','true'); } }
+  if(siteBtn){ if(b.site){ siteBtn.href = b.site; siteBtn.title='Visitar web'; siteBtn.style.display = 'inline-flex'; } else { siteBtn.style.display = 'none'; } }
   const dirBtn = document.getElementById('waBtn');
-  if(dirBtn){ if(mapHref){ dirBtn.href = mapHref; dirBtn.title = 'Dirección'; dirBtn.removeAttribute('aria-disabled'); } else { dirBtn.href = '#'; dirBtn.setAttribute('aria-disabled','true'); } }
+  if(dirBtn){ if(mapHref){ dirBtn.href = mapHref; dirBtn.title = 'Dirección'; dirBtn.style.display = 'inline-flex'; } else { dirBtn.style.display = 'none'; } }
+
+  // WhatsApp header button (new)
+  const whatsappBtn = document.getElementById('whatsappBtn');
+  // Prefer explicit 'whatsapp_link' when present; fall back to other whatsapp-like fields
+  const whatsappRaw = getField(b,'whatsapp_link') || getField(b,'whatsapp') || getField(b,'whatsapp_url') || getField(b,'whatsappLink') || getField(b,'wa') || getField(b,'whatsapp_number');
+  if(whatsappBtn){
+    if(whatsappRaw){
+      const w = String(whatsappRaw).trim();
+      if(/^https?:\/\//i.test(w)){
+        whatsappBtn.href = w;
+      } else {
+        // try to extract digits and build a wa.me link
+        const digits = w.replace(/[^0-9]/g,'');
+        if(digits){ whatsappBtn.href = 'https://wa.me/' + digits; }
+        else { whatsappBtn.href = w; }
+      }
+      whatsappBtn.target = '_blank';
+      whatsappBtn.rel = 'noopener noreferrer';
+      whatsappBtn.style.display = 'inline-flex';
+    } else {
+      whatsappBtn.style.display = 'none';
+    }
+  }
 
   // reviews button in sidebar — prefer location_reviews_link when available
   const reviewBtn = document.getElementById('reviewBtn');
   const reviewHref = getField(b,'location_reviews_link') || getField(b,'location_reviews') || getField(b,'reviews_link') || getField(b,'review_link') || getField(b,'reviewsUrl') || getField(b,'reviews_url') || getField(b,'reviews') || getField(b,'reviewsLink');
-  if(reviewBtn){ if(reviewHref){ reviewBtn.href = reviewHref; reviewBtn.style.display = 'inline-block'; reviewBtn.target = '_blank'; reviewBtn.rel = 'noopener'; } else { reviewBtn.style.display = 'none'; } }
+  if(reviewBtn){ if(reviewHref){ reviewBtn.href = reviewHref; reviewBtn.style.display = 'inline-flex'; reviewBtn.target = '_blank'; reviewBtn.rel = 'noopener noreferrer'; } else { reviewBtn.style.display = 'none'; } }
   // mobile review button (in header actions)
   const reviewBtnMobile = document.getElementById('reviewBtnMobile');
-  if(reviewBtnMobile){ if(reviewHref){ reviewBtnMobile.href = reviewHref; reviewBtnMobile.style.display = 'inline-flex'; reviewBtnMobile.target = '_blank'; reviewBtnMobile.rel = 'noopener'; } else { reviewBtnMobile.style.display = 'none'; } }
+  if(reviewBtnMobile){ if(reviewHref){ reviewBtnMobile.href = reviewHref; reviewBtnMobile.style.display = 'inline-flex'; reviewBtnMobile.target = '_blank'; reviewBtnMobile.rel = 'noopener noreferrer'; } else { reviewBtnMobile.style.display = 'none'; } }
 
   // rating
   const ratingKeys = ['rating','ratings','stars','score']; let ratingVal = null; for(const k of ratingKeys){ if(b[k] && !isNaN(parseFloat(b[k]))){ ratingVal = parseFloat(b[k]); break; } }

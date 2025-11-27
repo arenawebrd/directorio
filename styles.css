@@ -232,8 +232,8 @@ body{font-family:Roboto,Arial,sans-serif;color:#202124;background:#f7f8fb}
 	.site-header .brand{display:flex;align-items:center;gap:10px}
 		/* place desktop back next to brand */
 		.site-header .header-back.desktop-only{margin-left:12px}
-.detail-left{display:flex;gap:12px;align-items:center}
-.detail-logo{width:72px;height:72px;object-fit:cover;border-radius:8px}
+.detail-left{display:flex;gap:16px;align-items:center}
+.detail-logo{width:88px;height:88px;object-fit:cover;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 10px rgba(16,24,40,0.12);outline:1px solid rgba(0,0,0,0.06)}
 .detail-title h1{margin:0;font-size:20px}
 .detail-sub{display:flex;gap:10px;align-items:center;margin-top:6px}
 .badge{padding:6px 8px;border-radius:8px;font-weight:600}
@@ -314,9 +314,15 @@ body{font-family:Roboto,Arial,sans-serif;color:#202124;background:#f7f8fb}
 	.detail-sub #ratingWrap{order:1}
 	.detail-sub #category{order:2}
 	.detail-sub #openState{order:3}
-	/* Show review button text on mobile and make the button inline with text */
-	.detail-actions .review-mobile{min-width:0;padding:6px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:8px}
+	/* Show review button text on mobile and make the button inline with text. Override .action-btn fixed sizing. */
+	.detail-actions{margin-left:0;justify-content:flex-start;width:100%;padding-left:12px;gap:8px}
+	.detail-actions .review-mobile{min-width:0;padding:8px 12px;border-radius:8px;display:inline-flex;align-items:center;gap:10px;width:auto;height:auto;box-shadow:0 1px 3px rgba(16,24,40,0.06);border:1px solid rgba(60,64,67,0.08);background:#fff;color:var(--g-blue);text-decoration:none}
 	.detail-actions .review-mobile .rev-label{display:inline-block;font-weight:600}
+	.detail-actions .review-mobile .material-icons{font-size:18px;line-height:1;display:inline-flex;align-items:center;justify-content:center;margin-right:2px}
+	/* Ensure review button aligns to same left margin as content on small screens */
+	.detail-actions a{margin-right:8px}
+	/* Slightly enlarge logo on mobile so it balances with content */
+	.detail-logo{width:96px;height:96px}
 }
 
 /* Desktop: remove underline from the sidebar review button */
@@ -327,12 +333,24 @@ body{font-family:Roboto,Arial,sans-serif;color:#202124;background:#f7f8fb}
 		text-decoration: none !important;
 		color: inherit;
 	}
+
+	/* Improve desktop review button alignment and appearance so it sits at the same level as other sidebar controls */
+	.review-wrap{margin:8px 0;display:flex;align-items:center;justify-content:flex-start}
+	.review-wrap a#reviewBtn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid rgba(60,64,67,0.08);background:#fff;color:var(--g-blue);text-decoration:none;box-shadow:0 1px 3px rgba(16,24,40,0.06);height:auto;white-space:nowrap;overflow:visible;max-width:100%}
+	/* keep icon size consistent with header action icons */
+	.review-wrap a#reviewBtn .material-icons{font-size:18px;vertical-align:middle}
+	/* tighten header action spacing a bit so buttons don't push into the edge */
+	.detail-actions{gap:6px}
+	.action-btn{margin-left:6px}
 }
 
 /* action buttons in header */
 .action-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:#fff;color:var(--g-blue);margin-left:8px;text-decoration:none}
-.action-btn.wa{background:linear-gradient(90deg,#25D366,#128C7E);color:#fff}
+.action-btn.wa{background:#25D366;color:#fff;border-color:transparent}
+.action-btn.wa:hover{filter:brightness(.95)}
 .action-btn .material-icons{font-size:20px}
+/* ensure Font Awesome icons inside action-btn are sized and centered */
+.action-btn i.fab{font-size:18px;line-height:1;color:currentColor}
 
 /* social icon styling */
 .social-icons li a .s-ico svg{width:18px;height:18px}
